@@ -96,7 +96,6 @@ function indexWords(
 async function writeIndexHash(wordHash: any, fileName: string) {
   let els = Object.values(wordHash) as any[];
   const file = await open(fileName, "w");
-  console.log({ file });
 
   els.forEach(({ name, val }) => {
     const entries = val.map((pos: any) => `${pos.itemId},${pos.wordIx}`);
@@ -147,54 +146,42 @@ async function makeIxx(inIx: string, outIxx: string) {
     input: fileStream,
     output: process.stdout,
   });
-  const outFile = open(outIxx, "w");
+  const outFile = await open(outIxx, "w");
 
   let lastPrefix;
   let writtenPos = 0;
   let startPrefixPos = 0;
 
   let bytes = 0;
+
+  // write at least a single line
   const it = rl[Symbol.asyncIterator]();
   const { value: line } = await it.next();
-
   const [word] = line.split(/\s/);
   let writtenPrefix = getPrefix(word);
   writeIxxEntry(outFile, writtenPrefix, writtenPos);
-
   bytes += line.length;
   writtenPos += bytes;
 
-  // const [word, ...rest] = line.split(/\s/);
-  // const writtenPrefix = getPrefix(word);
-  // const lastPrefix = writtenPrefix;
-  // let writtenPos = lineFileTell(lf);
-  // writeIxxEntry(f, writtenPrefix, writtenPos);
-  /* Loop around adding to index as need be */
+  // loop over other lines
   for await (const line of rl) {
-    let diff;
     let curPos = bytes;
-    // let word = nextWord(line);
     const [word] = line.split(/\s/);
     const curPrefix = getPrefix(word);
     if (curPrefix !== lastPrefix) {
       startPrefixPos = curPos;
     }
-    diff = curPos - writtenPos;
-    if (diff >= binSize) {
-      if (curPrefix !== writtenPrefix) {
-        writeIxxEntry(outFile, curPrefix, startPrefixPos);
-        writtenPos = curPos;
-        writtenPrefix = curPrefix;
-      }
+
+    if (curPos - writtenPos >= binSize && curPrefix !== writtenPrefix) {
+      writeIxxEntry(outFile, curPrefix, startPrefixPos);
+      writtenPos = curPos;
+      writtenPrefix = curPrefix;
     }
     lastPrefix = curPrefix;
     bytes += line.length;
   }
-  // carefulClose(&f);
-  // lineFileClose(&lf);
-  // freeMem(curPrefix);
-  // freeMem(lastPrefix);
-  // freeMem(writtenPrefix);
+
+  outFile.close();
 }
 
 /* ixIxx - Create indices for simple line-oriented file of format
