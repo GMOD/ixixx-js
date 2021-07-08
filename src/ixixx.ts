@@ -70,7 +70,7 @@ function indexWords(
     if (!wordHash[word]) {
       wordHash[word] = { name: word, val: [] };
     }
-    wordHash[word].val.push({ itemId, wordIx });
+    wordHash[word].val.push({ itemId, wordIx: wordIx + 1 });
   });
 }
 
@@ -106,11 +106,11 @@ async function makeIx(inFile: string, outIndex: string) {
   const itemIdHash = {};
 
   for await (const line of rl) {
-    const [id, ...text] = line.toLowerCase().split(/\s/);
+    const [id, ...text] = line.split(/\s/);
     indexWords(
       wordHash,
       id,
-      text.filter((f) => !!f),
+      text.filter((f) => !!f).map((s) => s.toLowerCase()),
       itemIdHash
     );
   }
