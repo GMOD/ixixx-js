@@ -30,52 +30,6 @@ function initCharTables() {
   wordMiddleChars["-".charCodeAt(0)] = true;
 }
 
-function skipToWord(s: string) {
-  /* Skip to next word character.  Return NULL at end of string. */
-  let i = 0;
-  while (i < s.length) {
-    if (wordBeginChars[s.charCodeAt(i)]) {
-      return i;
-    }
-    i += 1;
-  }
-  return s.length;
-}
-
-/* Skip to next non-word character.  Returns empty string at end. */
-function skipOutWord(start: string) {
-  const s = start;
-  let i = 0;
-  while (i < s.length) {
-    if (!wordMiddleChars[s.charCodeAt(i)]) {
-      break;
-    }
-    i++;
-  }
-
-  // while (s > start && !wordBeginChars[(int)(s[-1])])
-  //     s -= 1;
-  return i;
-}
-
-interface WordPos {
-  /* Word position. */
-  next: WordPos /* Next wordPos in list. */;
-  itemId: string /* ID of associated item.  Not allocated here*/;
-  wordIx: number /* Word number within doc. */;
-}
-
-function wordPosCmp(va: WordPos, vb: WordPos): number {
-  /* Compare two wordPos by itemId. */
-  const a = va;
-  const b = vb;
-  let dif = a.itemId.localeCompare(b.itemId);
-  if (dif == 0) {
-    dif = a.wordIx - b.wordIx;
-  }
-  return dif;
-}
-
 type Hash = any;
 
 function indexWords(
@@ -105,7 +59,9 @@ async function writeIndexHash(
   const file = await open(fileName, "w");
 
   els.forEach(({ name, val }) => {
-    const entries = val.map((pos: any) => `${pos.itemId},${pos.wordIx}`);
+    const entries = val
+      .sort((a, b) => a.wordIx - b.wordIx)
+      .map((pos: any) => `${pos.itemId},${pos.wordIx}`);
     file.writeFile(`${name} ${entries.join(" ")}\n`);
   });
   file.close();
