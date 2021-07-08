@@ -93,8 +93,15 @@ function indexWords(
   });
 }
 
-async function writeIndexHash(wordHash: any, fileName: string) {
-  let els = Object.values(wordHash) as any[];
+async function writeIndexHash(
+  wordHash: {
+    [key: string]: { name: string; val: { itemId: number; wordIx: number }[] };
+  },
+  fileName: string
+) {
+  let els = Object.values(wordHash).sort((a, b) =>
+    a.name.localeCompare(b.name)
+  );
   const file = await open(fileName, "w");
 
   els.forEach(({ name, val }) => {
@@ -110,7 +117,6 @@ async function makeIx(inFile: string, outIndex: string) {
   const fileStream = fs.createReadStream(inFile);
   const rl = readline.createInterface({
     input: fileStream,
-    output: process.stdout,
   });
 
   const wordHash = {};
@@ -130,55 +136,44 @@ async function makeIx(inFile: string, outIndex: string) {
 }
 
 const prefixSize = 5;
-let binSize = 2 ^ 14;
+let binSize = 64 * 1024;
 function getPrefix(word: string) {
   return word.slice(0, prefixSize).padEnd(5, " ");
-}
-
-type File = any;
-function writeIxxEntry(file: File, prefix: string, pos: number) {
-  file.writeFile(`${prefix}${pos}\n`);
 }
 
 async function makeIxx(inIx: string, outIxx: string) {
   const fileStream = fs.createReadStream(inIx);
   const rl = readline.createInterface({
     input: fileStream,
-    output: process.stdout,
   });
   const outFile = await open(outIxx, "w");
 
   let lastPrefix;
-  let writtenPos = 0;
+  let writtenPrefix;
+  let writtenPos = -binSize;
   let startPrefixPos = 0;
-
   let bytes = 0;
 
-  // write at least a single line
-  const it = rl[Symbol.asyncIterator]();
-  const { value: line } = await it.next();
-  const [word] = line.split(/\s/);
-  let writtenPrefix = getPrefix(word);
-  writeIxxEntry(outFile, writtenPrefix, writtenPos);
-  bytes += line.length;
-  writtenPos += bytes;
-
-  // loop over other lines
+  // loop over other line
   for await (const line of rl) {
-    let curPos = bytes;
     const [word] = line.split(/\s/);
     const curPrefix = getPrefix(word);
     if (curPrefix !== lastPrefix) {
-      startPrefixPos = curPos;
+      startPrefixPos = bytes;
     }
 
-    if (curPos - writtenPos >= binSize && curPrefix !== writtenPrefix) {
-      writeIxxEntry(outFile, curPrefix, startPrefixPos);
-      writtenPos = curPos;
+    if (bytes - writtenPos >= binSize && curPrefix !== writtenPrefix) {
+      outFile.writeFile(
+        `${curPrefix}${startPrefixPos
+          .toString(16)
+          .toUpperCase()
+          .padStart(10, "0")}\n`
+      );
+      writtenPos = bytes;
       writtenPrefix = curPrefix;
     }
     lastPrefix = curPrefix;
-    bytes += line.length;
+    bytes += line.length + 1;
   }
 
   outFile.close();
