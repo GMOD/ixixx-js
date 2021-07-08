@@ -1,9 +1,9 @@
 import fs from "fs";
 import { open } from "fs/promises";
 import readline from "readline";
+/* Characters that may be part of a word. */
 
-const wordMiddleChars =
-  [] as boolean[]; /* Characters that may be part of a word. */
+const wordMiddleChars = [] as boolean[];
 const wordBeginChars = [] as boolean[];
 
 function isalpha(c: string) {
@@ -81,53 +81,26 @@ type Hash = any;
 function indexWords(
   wordHash: Hash,
   itemId: string,
-  text: string,
+  words: string[],
   itemIdHash: Hash
 ) {
-  /* Index words in text and store in hash. */
-  let s = 0;
-  let e = 0;
-  const word = [];
-  let len;
-  let hel: Hash;
-  let pos: WordPos;
-  let wordIx;
-  text = text.toLowerCase();
   itemIdHash[itemId] = true;
-
-  // // itemId = hashStoreName(itemIdHash, itemId);
-  for (wordIx = 1; ; ++wordIx) {
-    s = skipToWord(text.slice(e));
-    if (s === text.length) {
-      break;
+  words.forEach((word, wordIx) => {
+    if (!wordHash[word]) {
+      wordHash[word] = { name: word, val: [] };
     }
-    e = skipOutWord(text.slice(s));
-    len = e - s;
-
-    // sizeof word
-    if (len < 32) {
-      const word = text.slice(s, s + len);
-      hel = wordHash[word];
-      if (!hel) {
-        wordHash[word] = { itemId, wordIx };
-      }
-    }
-  }
+    wordHash[word].val.push({ itemId, wordIx });
+  });
 }
 
 async function writeIndexHash(wordHash: any, fileName: string) {
-  let els = Object.keys(wordHash);
+  let els = Object.values(wordHash) as any[];
   const file = await open(fileName, "w");
-  els = els.sort();
-  // slSort(&els, hashElCmp);
-  els.forEach((el) => {
-    // // struct wordPos *pos;
-    // file.writeFile(el.name);
-    // // slSort(&el->val, wordPosCmp);
-    // el.val.forEach((pos) => {
-    //   file.writeFile(` ${pos.itemId},${pos.wordIx}`);
-    // });
-    // file.writeFile("\n");
+  console.log({ file });
+
+  els.forEach(({ name, val }) => {
+    const entries = val.map((pos: any) => `${pos.itemId},${pos.wordIx}`);
+    file.writeFile(`${name} ${entries.join(" ")}\n`);
   });
   file.close();
 }
@@ -145,22 +118,27 @@ async function makeIx(inFile: string, outIndex: string) {
   const itemIdHash = {};
 
   for await (const line of rl) {
-    const [id, ...text] = line.split("\t");
-    indexWords(wordHash, id, text.join("\t"), itemIdHash);
+    const [id, ...text] = line.toLowerCase().split(/\s/);
+    indexWords(
+      wordHash,
+      id,
+      text.filter((f) => !!f),
+      itemIdHash
+    );
   }
 
   writeIndexHash(wordHash, outIndex);
 }
 
 const prefixSize = 5;
+let binSize = 2 ^ 14;
 function getPrefix(word: string) {
   return word.slice(0, prefixSize).padEnd(5, " ");
 }
 
 type File = any;
-function writeIxxEntry(f: File, prefix: string, pos: number) {
-  /* Write out one index entry to file. */
-  // fprintf(f, "%s%010llX\n", prefix, pos);
+function writeIxxEntry(file: File, prefix: string, pos: number) {
+  file.writeFile(`${prefix}${pos}\n`);
 }
 
 async function makeIxx(inIx: string, outIxx: string) {
@@ -169,36 +147,49 @@ async function makeIxx(inIx: string, outIxx: string) {
     input: fileStream,
     output: process.stdout,
   });
+  const outFile = open(outIxx, "w");
 
-  // const it = rl[Symbol.asyncIterator]();
-  // const line = (await it.next()) as string;
+  let lastPrefix;
+  let writtenPos = 0;
+  let startPrefixPos = 0;
 
-  // const [word, ...rest] = line.split("\t");
+  let bytes = 0;
+  const it = rl[Symbol.asyncIterator]();
+  const { value: line } = await it.next();
+
+  const [word] = line.split(/\s/);
+  let writtenPrefix = getPrefix(word);
+  writeIxxEntry(outFile, writtenPrefix, writtenPos);
+
+  bytes += line.length;
+  writtenPos += bytes;
+
+  // const [word, ...rest] = line.split(/\s/);
   // const writtenPrefix = getPrefix(word);
   // const lastPrefix = writtenPrefix;
-  // writtenPos = lineFileTell(lf);
+  // let writtenPos = lineFileTell(lf);
   // writeIxxEntry(f, writtenPrefix, writtenPos);
-  // /* Loop around adding to index as need be */
-  // while (lineFileNextReal(lf, &line))
-  //     {
-  //     int diff;
-  //     curPos = lineFileTell(lf);
-  //     word = nextWord(&line);
-  //     const curPrefix = getPrefix(word);
-  //     if (!sameString(curPrefix, lastPrefix))
-  //         startPrefixPos = curPos;
-  //     diff = curPos - writtenPos;
-  //     if (diff >= binSize)
-  //         {
-  // 	if (!sameString(curPrefix, writtenPrefix))
-  // 	    {
-  // 	    writeIxxEntry(f, curPrefix, startPrefixPos);
-  // 	    writtenPos = curPos;
-  // 	    strcpy(writtenPrefix, curPrefix);
-  // 	    }
-  // 	}
-  //     strcpy(lastPrefix, curPrefix);
-  //     }
+  /* Loop around adding to index as need be */
+  for await (const line of rl) {
+    let diff;
+    let curPos = bytes;
+    // let word = nextWord(line);
+    const [word] = line.split(/\s/);
+    const curPrefix = getPrefix(word);
+    if (curPrefix !== lastPrefix) {
+      startPrefixPos = curPos;
+    }
+    diff = curPos - writtenPos;
+    if (diff >= binSize) {
+      if (curPrefix !== writtenPrefix) {
+        writeIxxEntry(outFile, curPrefix, startPrefixPos);
+        writtenPos = curPos;
+        writtenPrefix = curPrefix;
+      }
+    }
+    lastPrefix = curPrefix;
+    bytes += line.length;
+  }
   // carefulClose(&f);
   // lineFileClose(&lf);
   // freeMem(curPrefix);
