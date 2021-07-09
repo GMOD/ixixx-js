@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { ixIxx } from "./ixixx";
+import { ixIxx } from "./index";
 
 const [file, out1 = "out.ix", out2 = "out.ixx"] = process.argv.slice(2);
 
