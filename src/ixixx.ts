@@ -1,35 +1,37 @@
-// this file is a translation of ixIxx.c from
-// https://github.com/ucscGenomeBrowser/kent/blob/master/src/index/ixIxx/ixIxx.c
-// into js the license of ixIxx.c file is reproduced below as the MIT license
-// stipulates
-
-/*
-MIT License
-
-Copyright (C) 2001 UC Regents
-
-Permission is hereby granted, free of charge, to any person or non-commercial
-entity obtaining a copy of this software and associated documentation files (the
-"Software"), to deal in the Software without restriction, including without
-limitation the rights to use, copy, modify, merge, publish, distribute,
-sublicense, and/or sell copies of the Software, and to permit persons to whom
-the Software is furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
-FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
-COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
-IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
-CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-  */
 import fs from "fs";
 import { open } from "fs/promises";
 import readline from "readline";
-/* Characters that may be part of a word. */
 
+// this file (ixixx.ts) is a translation of ixIxx.c from ucscGenomeBrowser/kent
+// the license of that file is reproduced below
+
+/*
+ * MIT License
+ *
+ * Copyright (C) 2001 UC Regents
+ *
+ * Permission is hereby granted, free of charge, to any person or non-commercial
+ * entity obtaining a copy of this software and associated documentation files (the
+ * "Software"), to deal in the Software without restriction, including without
+ * limitation the rights to use, copy, modify, merge, publish, distribute,
+ * sublicense, and/or sell copies of the Software, and to permit persons to whom
+ * the Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+ * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+ * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
+const prefixSize = 5;
+let binSize = 64 * 1024;
+
+// Characters that may be part of a word
 const wordMiddleChars = [] as boolean[];
 const wordBeginChars = [] as boolean[];
 
@@ -74,12 +76,11 @@ function indexWords(
   });
 }
 
-async function writeIndexHash(
-  wordHash: {
-    [key: string]: { name: string; val: { itemId: number; wordIx: number }[] };
-  },
-  fileName: string
-) {
+type WordHash = {
+  [key: string]: { name: string; val: { itemId: number; wordIx: number }[] };
+};
+
+async function writeIndexHash(wordHash: WordHash, fileName: string) {
   let els = Object.values(wordHash).sort((a, b) =>
     a.name.localeCompare(b.name)
   );
@@ -94,10 +95,9 @@ async function writeIndexHash(
   file.close();
 }
 
-async function makeIx(inFile: string, outIndex: string) {
+async function makeIxStream(fileStream: fs.ReadStream, outIndex: string) {
   initCharTables();
-  /* Create an index file. */
-  const fileStream = fs.createReadStream(inFile);
+
   const rl = readline.createInterface({
     input: fileStream,
   });
@@ -106,11 +106,11 @@ async function makeIx(inFile: string, outIndex: string) {
   const itemIdHash = {};
 
   for await (const line of rl) {
-    const [id, ...text] = line.split(/\s/);
+    const [id, ...text] = line.split(/\s+/);
     indexWords(
       wordHash,
       id,
-      text.filter((f) => !!f).map((s) => s.toLowerCase()),
+      text.map((s) => s.toLowerCase()),
       itemIdHash
     );
   }
@@ -118,8 +118,11 @@ async function makeIx(inFile: string, outIndex: string) {
   writeIndexHash(wordHash, outIndex);
 }
 
-const prefixSize = 5;
-let binSize = 64 * 1024;
+async function makeIx(inFile: string, outIndex: string) {
+  const fileStream = fs.createReadStream(inFile);
+  return makeIxStream(fileStream, outIndex);
+}
+
 function getPrefix(word: string) {
   return word.slice(0, prefixSize).padEnd(5, " ");
 }
@@ -137,7 +140,6 @@ async function makeIxx(inIx: string, outIxx: string) {
   let startPrefixPos = 0;
   let bytes = 0;
 
-  // loop over other line
   for await (const line of rl) {
     const [word] = line.split(/\s/);
     const curPrefix = getPrefix(word);
@@ -166,5 +168,16 @@ async function makeIxx(inIx: string, outIxx: string) {
  * <symbol> <free text>. */
 export async function ixIxx(inText: string, outIx: string, outIxx: string) {
   await makeIx(inText, outIx);
+  await makeIxx(outIx, outIxx);
+}
+
+/* ixIxx - Create indices for simple line-oriented file of format
+ * <symbol> <free text>. */
+export async function ixIxxStream(
+  stream: fs.ReadStream,
+  outIx: string,
+  outIxx: string
+) {
+  await makeIxStream(stream, outIx);
   await makeIxx(outIx, outIxx);
 }
