@@ -15,7 +15,8 @@
   },
   "scripts": {
     "prebuild": "rimraf dist",
-    "build": "tsc"
+    "build": "tsc",
+    "postversion": "git push --follow-tags"
   },
   "bin": {
     "ixixxjs": "./dist/bin.js"

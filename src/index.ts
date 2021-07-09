@@ -1,4 +1,6 @@
 import fs from "fs";
+
+import { Readable } from "stream";
 import { open } from "fs/promises";
 import readline from "readline";
 
@@ -95,7 +97,7 @@ async function writeIndexHash(wordHash: WordHash, fileName: string) {
   file.close();
 }
 
-async function makeIxStream(fileStream: fs.ReadStream, outIndex: string) {
+async function makeIxStream(fileStream: Readable, outIndex: string) {
   initCharTables();
 
   const rl = readline.createInterface({
@@ -174,7 +176,7 @@ export async function ixIxx(inText: string, outIx: string, outIxx: string) {
 /* ixIxx - Create indices for simple line-oriented file of format
  * <symbol> <free text>. */
 export async function ixIxxStream(
-  stream: fs.ReadStream,
+  stream: Readable,
   outIx: string,
   outIxx: string
 ) {
