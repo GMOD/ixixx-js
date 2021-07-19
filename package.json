@@ -16,6 +16,7 @@
   "scripts": {
     "prebuild": "rimraf dist",
     "build": "tsc",
+    "preversion": "npm run build",
     "postversion": "git push --follow-tags"
   },
   "bin": {

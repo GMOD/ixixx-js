@@ -1,3 +1,7 @@
+# v1.0.3
+
+- Fix borked typescript definitions again
+
 # v1.0.2
 
 - Fix typescript definitions on stream functions
