@@ -1,3 +1,7 @@
+# v1.0.5
+
+- Print usage message for CLI tool
+
 # v1.0.4
 
 - Ensure ix is written before calculating ixx

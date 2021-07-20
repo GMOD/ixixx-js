@@ -72,25 +72,25 @@ function indexWords(
   itemIdHash[itemId] = true;
   words.forEach((word, wordIx) => {
     if (!wordHash[word]) {
-      wordHash[word] = { name: word, val: [] };
+      wordHash[word] = { val: [] };
     }
     wordHash[word].val.push({ itemId, wordIx: wordIx + 1 });
   });
 }
 
 type WordHash = {
-  [key: string]: { name: string; val: { itemId: number; wordIx: number }[] };
+  [key: string]: { val: { itemId: number; wordIx: number }[] };
 };
 
 async function writeIndexHash(wordHash: WordHash, fileName: string) {
   const file = await open(fileName, "w");
 
-  Object.values(wordHash)
-    .sort((a, b) => a.name.localeCompare(b.name))
-    .forEach(({ name, val }) => {
+  Object.entries(wordHash)
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .forEach(([name, { val }]) => {
       const entries = val
         .sort((a, b) => a.wordIx - b.wordIx)
-        .map((pos: any) => `${pos.itemId},${pos.wordIx}`);
+        .map((pos) => `${pos.itemId},${pos.wordIx}`);
       file.writeFile(`${name} ${entries.join(" ")}\n`);
     });
   file.close();
