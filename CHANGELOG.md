@@ -1,3 +1,7 @@
+# v1.0.4
+
+- Ensure ix is written before calculating ixx
+
 # v1.0.3
 
 - Fix borked typescript definitions again
