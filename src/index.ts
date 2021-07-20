@@ -83,17 +83,16 @@ type WordHash = {
 };
 
 async function writeIndexHash(wordHash: WordHash, fileName: string) {
-  let els = Object.values(wordHash).sort((a, b) =>
-    a.name.localeCompare(b.name)
-  );
   const file = await open(fileName, "w");
 
-  els.forEach(({ name, val }) => {
-    const entries = val
-      .sort((a, b) => a.wordIx - b.wordIx)
-      .map((pos: any) => `${pos.itemId},${pos.wordIx}`);
-    file.writeFile(`${name} ${entries.join(" ")}\n`);
-  });
+  Object.values(wordHash)
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .forEach(({ name, val }) => {
+      const entries = val
+        .sort((a, b) => a.wordIx - b.wordIx)
+        .map((pos: any) => `${pos.itemId},${pos.wordIx}`);
+      file.writeFile(`${name} ${entries.join(" ")}\n`);
+    });
   file.close();
 }
 
@@ -117,7 +116,7 @@ async function makeIxStream(fileStream: Readable, outIndex: string) {
     );
   }
 
-  writeIndexHash(wordHash, outIndex);
+  await writeIndexHash(wordHash, outIndex);
 }
 
 async function makeIx(inFile: string, outIndex: string) {
