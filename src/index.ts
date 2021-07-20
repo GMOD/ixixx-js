@@ -1,8 +1,6 @@
 import fs from "fs";
-
-import { Readable } from "stream";
-import { open } from "fs/promises";
 import readline from "readline";
+import { Readable } from "stream";
 
 // this file (ixixx.ts) is a translation of ixIxx.c from ucscGenomeBrowser/kent
 // the license of that file is reproduced below
@@ -83,17 +81,19 @@ type WordHash = {
 };
 
 async function writeIndexHash(wordHash: WordHash, fileName: string) {
-  const file = await open(fileName, "w");
-
-  Object.entries(wordHash)
-    .sort((a, b) => a[0].localeCompare(b[0]))
-    .forEach(([name, { val }]) => {
-      const entries = val
-        .sort((a, b) => a.wordIx - b.wordIx)
-        .map((pos) => `${pos.itemId},${pos.wordIx}`);
-      file.writeFile(`${name} ${entries.join(" ")}\n`);
-    });
-  file.close();
+  const file = await fs.promises.open(fileName, "w");
+  try {
+    Object.entries(wordHash)
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .forEach(([name, { val }]) => {
+        const entries = val
+          .sort((a, b) => a.wordIx - b.wordIx)
+          .map((pos) => `${pos.itemId},${pos.wordIx}`);
+        file.writeFile(`${name} ${entries.join(" ")}\n`);
+      });
+  } finally {
+    file.close();
+  }
 }
 
 async function makeIxStream(fileStream: Readable, outIndex: string) {
@@ -129,40 +129,42 @@ function getPrefix(word: string) {
 }
 
 async function makeIxx(inIx: string, outIxx: string) {
-  const fileStream = fs.createReadStream(inIx);
-  const rl = readline.createInterface({
-    input: fileStream,
-  });
-  const outFile = await open(outIxx, "w");
+  const outFile = await fs.promises.open(outIxx, "w");
+  try {
+    const fileStream = fs.createReadStream(inIx);
+    const rl = readline.createInterface({
+      input: fileStream,
+    });
 
-  let lastPrefix;
-  let writtenPrefix;
-  let writtenPos = -binSize;
-  let startPrefixPos = 0;
-  let bytes = 0;
+    let lastPrefix;
+    let writtenPrefix;
+    let writtenPos = -binSize;
+    let startPrefixPos = 0;
+    let bytes = 0;
 
-  for await (const line of rl) {
-    const [word] = line.split(/\s/);
-    const curPrefix = getPrefix(word);
-    if (curPrefix !== lastPrefix) {
-      startPrefixPos = bytes;
+    for await (const line of rl) {
+      const [word] = line.split(/\s/);
+      const curPrefix = getPrefix(word);
+      if (curPrefix !== lastPrefix) {
+        startPrefixPos = bytes;
+      }
+
+      if (bytes - writtenPos >= binSize && curPrefix !== writtenPrefix) {
+        outFile.writeFile(
+          `${curPrefix}${startPrefixPos
+            .toString(16)
+            .toUpperCase()
+            .padStart(10, "0")}\n`
+        );
+        writtenPos = bytes;
+        writtenPrefix = curPrefix;
+      }
+      lastPrefix = curPrefix;
+      bytes += line.length + 1;
     }
-
-    if (bytes - writtenPos >= binSize && curPrefix !== writtenPrefix) {
-      outFile.writeFile(
-        `${curPrefix}${startPrefixPos
-          .toString(16)
-          .toUpperCase()
-          .padStart(10, "0")}\n`
-      );
-      writtenPos = bytes;
-      writtenPrefix = curPrefix;
-    }
-    lastPrefix = curPrefix;
-    bytes += line.length + 1;
+  } finally {
+    outFile.close();
   }
-
-  outFile.close();
 }
 
 /* ixIxx - Create indices for simple line-oriented file of format

@@ -1,6 +1,8 @@
 # v1.0.5
 
 - Print usage message for CLI tool
+- Attempt to fix error "Cannot find module 'fs/promises'...
+- Avoid potential file handle leak on error with try/finally
 
 # v1.0.4
 
