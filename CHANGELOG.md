@@ -1,3 +1,7 @@
+# v1.0.6
+
+- Fix writing ix and ixx files to await the filehandle.writeFile call
+
 # v1.0.5
 
 - Print usage message for CLI tool

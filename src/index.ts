@@ -83,14 +83,16 @@ type WordHash = {
 async function writeIndexHash(wordHash: WordHash, fileName: string) {
   const file = await fs.promises.open(fileName, "w");
   try {
-    Object.entries(wordHash)
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .forEach(([name, { val }]) => {
-        const entries = val
-          .sort((a, b) => a.wordIx - b.wordIx)
-          .map((pos) => `${pos.itemId},${pos.wordIx}`);
-        file.writeFile(`${name} ${entries.join(" ")}\n`);
-      });
+    const entries = Object.entries(wordHash).sort((a, b) =>
+      a[0].localeCompare(b[0])
+    );
+
+    for (const [name, { val }] of entries) {
+      const entries = val
+        .sort((a, b) => a.wordIx - b.wordIx)
+        .map((pos) => `${pos.itemId},${pos.wordIx}`);
+      await file.writeFile(`${name} ${entries.join(" ")}\n`);
+    }
   } finally {
     file.close();
   }
@@ -150,7 +152,7 @@ async function makeIxx(inIx: string, outIxx: string) {
       }
 
       if (bytes - writtenPos >= binSize && curPrefix !== writtenPrefix) {
-        outFile.writeFile(
+        await outFile.writeFile(
           `${curPrefix}${startPrefixPos
             .toString(16)
             .toUpperCase()
