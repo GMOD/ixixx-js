@@ -1,3 +1,7 @@
+# v1.0.7
+
+- Use fs.createWriteStream instead of fs/promises for writing outputs
+
 # v1.0.6
 
 - Fix writing ix and ixx files to await the filehandle.writeFile call

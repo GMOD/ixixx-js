@@ -2,6 +2,8 @@ import fs from "fs";
 import readline from "readline";
 import { Readable } from "stream";
 
+import { once } from "events";
+
 // this file (ixixx.ts) is a translation of ixIxx.c from ucscGenomeBrowser/kent
 // the license of that file is reproduced below
 
@@ -48,7 +50,6 @@ function isalnum(c: string) {
 }
 
 function initCharTables() {
-  /* Initialize tables that describe characters. */
   for (let c = 0; c < 256; ++c) {
     if (isalnum(String.fromCharCode(c))) {
       wordBeginChars[c] = wordMiddleChars[c] = true;
@@ -70,31 +71,37 @@ function indexWords(
   itemIdHash[itemId] = true;
   words.forEach((word, wordIx) => {
     if (!wordHash[word]) {
-      wordHash[word] = { val: [] };
+      wordHash[word] = [];
     }
-    wordHash[word].val.push({ itemId, wordIx: wordIx + 1 });
+    wordHash[word].push({ itemId, wordIx: wordIx + 1 });
   });
 }
 
 type WordHash = {
-  [key: string]: { val: { itemId: number; wordIx: number }[] };
+  [key: string]: { itemId: number; wordIx: number }[];
 };
 
 async function writeIndexHash(wordHash: WordHash, fileName: string) {
-  const file = await fs.promises.open(fileName, "w");
+  const out = fs.createWriteStream(fileName);
   try {
-    const entries = Object.entries(wordHash).sort((a, b) =>
+    for (const [name, val] of Object.entries(wordHash).sort((a, b) =>
       a[0].localeCompare(b[0])
-    );
+    )) {
+      const res = out.write(
+        `${name} ${val
+          .sort((a, b) => a.wordIx - b.wordIx)
+          .map((pos) => `${pos.itemId},${pos.wordIx}`)
+          .join(" ")}\n`
+      );
 
-    for (const [name, { val }] of entries) {
-      const entries = val
-        .sort((a, b) => a.wordIx - b.wordIx)
-        .map((pos) => `${pos.itemId},${pos.wordIx}`);
-      await file.writeFile(`${name} ${entries.join(" ")}\n`);
+      // Handle backpressure
+      // ref https://nodesource.com/blog/understanding-streams-in-nodejs/
+      if (!res) {
+        await once(out, "drain");
+      }
     }
   } finally {
-    file.close();
+    out.end();
   }
 }
 
@@ -131,7 +138,7 @@ function getPrefix(word: string) {
 }
 
 async function makeIxx(inIx: string, outIxx: string) {
-  const outFile = await fs.promises.open(outIxx, "w");
+  const out = fs.createWriteStream(outIxx);
   try {
     const fileStream = fs.createReadStream(inIx);
     const rl = readline.createInterface({
@@ -152,12 +159,18 @@ async function makeIxx(inIx: string, outIxx: string) {
       }
 
       if (bytes - writtenPos >= binSize && curPrefix !== writtenPrefix) {
-        await outFile.writeFile(
+        const res = out.write(
           `${curPrefix}${startPrefixPos
             .toString(16)
             .toUpperCase()
             .padStart(10, "0")}\n`
         );
+
+        // Handle backpressure
+        // ref https://nodesource.com/blog/understanding-streams-in-nodejs/
+        if (!res) {
+          await once(out, "drain");
+        }
         writtenPos = bytes;
         writtenPrefix = curPrefix;
       }
@@ -165,19 +178,15 @@ async function makeIxx(inIx: string, outIxx: string) {
       bytes += line.length + 1;
     }
   } finally {
-    outFile.close();
+    out.end();
   }
 }
 
-/* ixIxx - Create indices for simple line-oriented file of format
- * <symbol> <free text>. */
 export async function ixIxx(inText: string, outIx: string, outIxx: string) {
   await makeIx(inText, outIx);
   await makeIxx(outIx, outIxx);
 }
 
-/* ixIxx - Create indices for simple line-oriented file of format
- * <symbol> <free text>. */
 export async function ixIxxStream(
   stream: Readable,
   outIx: string,
