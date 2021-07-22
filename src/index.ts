@@ -1,8 +1,12 @@
+import { promisify } from "util";
+import { finished } from "stream";
 import fs from "fs";
 import readline from "readline";
 import { Readable } from "stream";
 
 import { once } from "events";
+
+const streamFinished = promisify(finished); // (A)
 
 // this file (ixixx.ts) is a translation of ixIxx.c from ucscGenomeBrowser/kent
 // the license of that file is reproduced below
@@ -102,6 +106,8 @@ async function writeIndexHash(wordHash: WordHash, fileName: string) {
     }
   } finally {
     out.end();
+
+    await streamFinished(out);
   }
 }
 
@@ -179,6 +185,7 @@ async function makeIxx(inIx: string, outIxx: string) {
     }
   } finally {
     out.end();
+    await streamFinished(out);
   }
 }
 
