@@ -2,6 +2,8 @@ import fs from "fs";
 import readline from "readline";
 import { Readable } from "stream";
 
+import { once } from "events";
+
 // this file (ixixx.ts) is a translation of ixIxx.c from ucscGenomeBrowser/kent
 // the license of that file is reproduced below
 
@@ -85,12 +87,18 @@ async function writeIndexHash(wordHash: WordHash, fileName: string) {
     for (const [name, val] of Object.entries(wordHash).sort((a, b) =>
       a[0].localeCompare(b[0])
     )) {
-      out.write(
+      const res = out.write(
         `${name} ${val
           .sort((a, b) => a.wordIx - b.wordIx)
           .map((pos) => `${pos.itemId},${pos.wordIx}`)
           .join(" ")}\n`
       );
+
+      // Handle backpressure
+      // ref https://nodesource.com/blog/understanding-streams-in-nodejs/
+      if (!res) {
+        await once(out, "drain");
+      }
     }
   } finally {
     out.end();
@@ -151,12 +159,18 @@ async function makeIxx(inIx: string, outIxx: string) {
       }
 
       if (bytes - writtenPos >= binSize && curPrefix !== writtenPrefix) {
-        out.write(
+        const res = out.write(
           `${curPrefix}${startPrefixPos
             .toString(16)
             .toUpperCase()
             .padStart(10, "0")}\n`
         );
+
+        // Handle backpressure
+        // ref https://nodesource.com/blog/understanding-streams-in-nodejs/
+        if (!res) {
+          await once(out, "drain");
+        }
         writtenPos = bytes;
         writtenPrefix = curPrefix;
       }
