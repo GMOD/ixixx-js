@@ -111,15 +111,25 @@ async function writeIndexHash(wordHash: WordHash, fileName: string) {
   }
 }
 
-async function makeIxStream(fileStream: Readable, outIndex: string) {
+async function makeIxStream(
+  stream: Readable,
+  outIxFilename: string,
+  incremental: boolean
+) {
   initCharTables();
 
   const rl = readline.createInterface({
-    input: fileStream,
+    input: stream,
   });
 
   const wordHash = {};
   const itemIdHash = {};
+
+  if (incremental) {
+    fs.createReadStream(outIxFilename);
+    for(await const line of rl) {
+    }
+  }
 
   for await (const line of rl) {
     const [id, ...text] = line.split(/\s+/);
@@ -131,7 +141,7 @@ async function makeIxStream(fileStream: Readable, outIndex: string) {
     );
   }
 
-  await writeIndexHash(wordHash, outIndex);
+  await writeIndexHash(wordHash, outIxFilename);
 }
 
 async function makeIx(inFile: string, outIndex: string) {
@@ -197,8 +207,9 @@ export async function ixIxx(inText: string, outIx: string, outIxx: string) {
 export async function ixIxxStream(
   stream: Readable,
   outIx: string,
-  outIxx: string
+  outIxx: string,
+  incremental: boolean
 ) {
-  await makeIxStream(stream, outIx);
+  await makeIxStream(stream, outIx, incremental);
   await makeIxx(outIx, outIxx);
 }
