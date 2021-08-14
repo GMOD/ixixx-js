@@ -3,7 +3,7 @@ import { finished } from "stream";
 import fs from "fs";
 import readline from "readline";
 import { Readable } from "stream";
-
+import esort from "external-sorting";
 import { once } from "events";
 
 const streamFinished = promisify(finished); // (A)
