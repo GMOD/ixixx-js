@@ -3,7 +3,6 @@ import { finished } from "stream";
 import fs from "fs";
 import readline from "readline";
 import { Readable } from "stream";
-
 import { once } from "events";
 
 const streamFinished = promisify(finished); // (A)
@@ -66,31 +65,29 @@ function initCharTables() {
 
 type Hash = any;
 
-function indexWords(
-  wordHash: Hash,
-  itemId: string,
-  words: string[],
-  itemIdHash: Hash
-) {
-  itemIdHash[itemId] = true;
+let i = 0;
+function indexWords(wordHash: Hash, itemId: string, words: string[]) {
   words.forEach((word, wordIx) => {
-    if (!wordHash[word]) {
-      wordHash[word] = [];
+    if (!wordHash.has(word)) {
+      wordHash.set(word, []);
     }
-    wordHash[word].push({ itemId, wordIx: wordIx + 1 });
+    const arr = wordHash.get(word);
+    if (i++ % 10000 === 0) {
+      console.log(word, arr.length, wordHash.size);
+    }
+    arr.push({ itemId, wordIx: wordIx + 1 });
   });
 }
 
-type WordHash = {
-  [key: string]: { itemId: number; wordIx: number }[];
-};
+type WordHash = Map<string, { itemId: number; wordIx: number }[]>;
 
 async function writeIndexHash(wordHash: WordHash, fileName: string) {
   const out = fs.createWriteStream(fileName);
   try {
-    for (const [name, val] of Object.entries(wordHash).sort((a, b) =>
+    const arr = [...wordHash.entries()].sort((a, b) =>
       a[0].localeCompare(b[0])
-    )) {
+    );
+    for (const [name, val] of arr) {
       const res = out.write(
         `${name} ${val
           .sort((a, b) => a.wordIx - b.wordIx)
@@ -118,20 +115,18 @@ async function makeIxStream(fileStream: Readable, outIndex: string) {
     input: fileStream,
   });
 
-  const wordHash = {};
-  const itemIdHash = {};
+  const map = new Map();
 
   for await (const line of rl) {
     const [id, ...text] = line.split(/\s+/);
     indexWords(
-      wordHash,
+      map,
       id,
-      text.map((s) => s.toLowerCase()),
-      itemIdHash
+      text.map((s) => s.toLowerCase())
     );
   }
 
-  await writeIndexHash(wordHash, outIndex);
+  await writeIndexHash(map, outIndex);
 }
 
 async function makeIx(inFile: string, outIndex: string) {
