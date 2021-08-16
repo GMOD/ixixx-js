@@ -10,6 +10,7 @@
   "license": "MIT",
   "devDependencies": {
     "@types/node": "^16.0.1",
+    "@types/tmp": "^0.2.1",
     "rimraf": "^3.0.2",
     "typescript": "^4.3.5"
   },
@@ -24,5 +25,9 @@
   },
   "publishConfig": {
     "access": "public"
+  },
+  "dependencies": {
+    "external-sorting": "^1.2.0",
+    "tmp": "^0.2.1"
   }
 }

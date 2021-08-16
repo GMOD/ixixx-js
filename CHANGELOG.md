@@ -1,3 +1,7 @@
+# v1.0.8
+
+- Use external sorting module for better scalability, using the great external-sorting package on NPM
+
 # v1.0.7
 
 - Use fs.createWriteStream instead of fs/promises for writing outputs

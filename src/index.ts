@@ -1,10 +1,10 @@
 import { promisify } from "util";
-import { finished } from "stream";
+import { finished, Readable } from "stream";
+import { once } from "events";
 import fs from "fs";
 import readline from "readline";
-import { Readable } from "stream";
-
-import { once } from "events";
+import tmp from "tmp";
+import esort from "external-sorting";
 
 const streamFinished = promisify(finished); // (A)
 
@@ -64,44 +64,27 @@ function initCharTables() {
   wordMiddleChars["-".charCodeAt(0)] = true;
 }
 
-type Hash = any;
+async function makeIxStream(fileStream: Readable, outIxFilename: string) {
+  initCharTables();
 
-function indexWords(
-  wordHash: Hash,
-  itemId: string,
-  words: string[],
-  itemIdHash: Hash
-) {
-  itemIdHash[itemId] = true;
-  words.forEach((word, wordIx) => {
-    if (!wordHash[word]) {
-      wordHash[word] = [];
-    }
-    wordHash[word].push({ itemId, wordIx: wordIx + 1 });
-  });
-}
-
-type WordHash = {
-  [key: string]: { itemId: number; wordIx: number }[];
-};
-
-async function writeIndexHash(wordHash: WordHash, fileName: string) {
-  const out = fs.createWriteStream(fileName);
+  const tmpobj = tmp.fileSync();
+  const out = fs.createWriteStream(tmpobj.name);
   try {
-    for (const [name, val] of Object.entries(wordHash).sort((a, b) =>
-      a[0].localeCompare(b[0])
-    )) {
-      const res = out.write(
-        `${name} ${val
-          .sort((a, b) => a.wordIx - b.wordIx)
-          .map((pos) => `${pos.itemId},${pos.wordIx}`)
-          .join(" ")}\n`
-      );
+    const rl = readline.createInterface({
+      input: fileStream,
+    });
 
-      // Handle backpressure
-      // ref https://nodesource.com/blog/understanding-streams-in-nodejs/
-      if (!res) {
-        await once(out, "drain");
+    for await (const line of rl) {
+      const [id, ...words] = line.split(/\s+/);
+      for (let i = 0; i < words.length; i++) {
+        const word = words[i];
+        const res = out.write(`${word.toLowerCase()} ${id}\n`);
+
+        // Handle backpressure
+        // ref https://nodesource.com/blog/understanding-streams-in-nodejs/
+        if (!res) {
+          await once(out, "drain");
+        }
       }
     }
   } finally {
@@ -109,29 +92,58 @@ async function writeIndexHash(wordHash: WordHash, fileName: string) {
 
     await streamFinished(out);
   }
-}
 
-async function makeIxStream(fileStream: Readable, outIndex: string) {
-  initCharTables();
+  const tmpobj2 = tmp.fileSync();
+  const outSort = fs.createWriteStream(tmpobj2.name);
 
-  const rl = readline.createInterface({
-    input: fileStream,
-  });
+  await esort({
+    input: fs.createReadStream(tmpobj.name),
+    output: outSort,
+    tempDir: __dirname,
+    maxHeap: 100000,
+  }).asc();
 
-  const wordHash = {};
-  const itemIdHash = {};
+  // superstitious streamFinished on the file that esort outputs
+  await streamFinished(outSort);
 
-  for await (const line of rl) {
-    const [id, ...text] = line.split(/\s+/);
-    indexWords(
-      wordHash,
-      id,
-      text.map((s) => s.toLowerCase()),
-      itemIdHash
-    );
+  const outIx = fs.createWriteStream(outIxFilename);
+  try {
+    const readFinalStream = fs.createReadStream(tmpobj2.name);
+    const rl2 = readline.createInterface({
+      input: readFinalStream,
+    });
+
+    let current;
+    let buff = [];
+    for await (const line of rl2) {
+      const [id, data] = line.split(" ");
+      if (current !== id) {
+        if (buff.length) {
+          const res = outIx.write(
+            `${current} ${buff
+              .map((elt, idx) => `${elt},${idx + 1}`)
+              .join(" ")}\n`
+          );
+          buff = [];
+
+          // Handle backpressure
+          // ref https://nodesource.com/blog/understanding-streams-in-nodejs/
+          if (!res) {
+            await once(outIx, "drain");
+          }
+        }
+        current = id;
+      }
+      buff.push(data);
+    }
+  } finally {
+    outIx.end();
+
+    await streamFinished(outIx);
   }
 
-  await writeIndexHash(wordHash, outIndex);
+  tmpobj.removeCallback();
+  tmpobj2.removeCallback();
 }
 
 async function makeIx(inFile: string, outIndex: string) {
