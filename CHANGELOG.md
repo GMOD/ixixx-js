@@ -1,3 +1,7 @@
+# v1.0.11
+
+- Use a smaller maxHeap size for faster operation
+
 # v1.0.10
 
 - Use simple string compare rather than localeCompare
