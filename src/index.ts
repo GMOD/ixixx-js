@@ -67,16 +67,12 @@ function initCharTables() {
 
 type Hash = any;
 
-let i = 0;
 function indexWords(wordHash: Hash, itemId: string, words: string[]) {
   words.forEach((word, wordIx) => {
     if (!wordHash.has(word)) {
       wordHash.set(word, []);
     }
     const arr = wordHash.get(word);
-    if (i++ % 10000 === 0) {
-      console.log(word, arr.length, wordHash.size);
-    }
     arr.push({ itemId, wordIx: wordIx + 1 });
   });
 }
@@ -117,6 +113,8 @@ async function makeIxStream(fileStream: Readable, outIndex: string) {
     input: fileStream,
   });
 
+  // we use BigMap because regular ES6 map has a hard 16.7M element
+  // max limit. note that a regular object has ~8.3M max limit
   const map = new BigMap();
 
   for await (const line of rl) {
