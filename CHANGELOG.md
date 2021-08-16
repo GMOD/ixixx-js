@@ -1,3 +1,7 @@
+# v1.0.9
+
+- Use new external sorting module that is ~2x faster than external-sorting
+
 # v1.0.8
 
 - Use external sorting module for better scalability, using the great external-sorting package on NPM
