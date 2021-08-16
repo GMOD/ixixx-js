@@ -1,6 +1,5 @@
 import { promisify } from "util";
-import { finished } from "stream";
-import { Readable } from "stream";
+import { finished, Readable } from "stream";
 import { once } from "events";
 import fs from "fs";
 import readline from "readline";
@@ -65,8 +64,6 @@ function initCharTables() {
   wordMiddleChars["-".charCodeAt(0)] = true;
 }
 
-type Hash = any;
-
 async function makeIxStream(fileStream: Readable, outIxFilename: string) {
   initCharTables();
 
@@ -98,11 +95,12 @@ async function makeIxStream(fileStream: Readable, outIxFilename: string) {
 
   const tmpobj2 = tmp.fileSync();
   const outSort = fs.createWriteStream(tmpobj2.name);
+
   await esort({
     input: fs.createReadStream(tmpobj.name),
     output: outSort,
     tempDir: __dirname,
-    maxHeap: 10000,
+    maxHeap: 500000,
   }).asc();
 
   // superstitious streamFinished on the file that esort outputs
@@ -120,10 +118,11 @@ async function makeIxStream(fileStream: Readable, outIxFilename: string) {
     for await (const line of rl2) {
       const [id, data] = line.split(" ");
       if (current !== id) {
-        current = id;
         if (buff.length) {
           const res = outIx.write(
-            `${current} ${buff.map((elt, idx) => `${elt},${idx}`).join(" ")}\n`
+            `${current} ${buff
+              .map((elt, idx) => `${elt},${idx + 1}`)
+              .join(" ")}\n`
           );
           buff = [];
 
@@ -133,6 +132,7 @@ async function makeIxStream(fileStream: Readable, outIxFilename: string) {
             await once(outIx, "drain");
           }
         }
+        current = id;
       }
       buff.push(data);
     }
@@ -141,6 +141,9 @@ async function makeIxStream(fileStream: Readable, outIxFilename: string) {
 
     await streamFinished(outIx);
   }
+
+  tmpobj.removeCallback();
+  tmpobj2.removeCallback();
 }
 
 async function makeIx(inFile: string, outIndex: string) {
