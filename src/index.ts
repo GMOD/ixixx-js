@@ -6,6 +6,8 @@ import readline from "readline";
 import tmp from "tmp";
 import esort from "external-sort";
 
+tmp.setGracefulCleanup();
+
 const streamFinished = promisify(finished); // (A)
 
 // this file (ixixx.ts) is a translation of ixIxx.c from ucscGenomeBrowser/kent
@@ -67,7 +69,10 @@ function initCharTables() {
 async function makeIxStream(fileStream: Readable, outIxFilename: string) {
   initCharTables();
 
-  const tmpobj = tmp.fileSync();
+  const tmpobj = tmp.fileSync({
+    prefix: "jbrowse-trix-in",
+    postfix: ".txt",
+  });
   const out = fs.createWriteStream(tmpobj.name);
   try {
     const rl = readline.createInterface({
@@ -93,13 +98,17 @@ async function makeIxStream(fileStream: Readable, outIxFilename: string) {
     await streamFinished(out);
   }
 
-  const tmpobj2 = tmp.fileSync();
+  const tmpobj2 = tmp.fileSync({
+    prefix: "jbrowse-trix-out",
+    postfix: ".txt",
+  });
   const inSort = fs.createReadStream(tmpobj.name);
   const outSort = fs.createWriteStream(tmpobj2.name);
 
   await esort(inSort, outSort, {
-    serializer: (a: any) => a,
-    deserializer: (a: any) => a + "\n",
+    maxHeap: 1024 * 1024,
+    serializer: (a: any) => a + "\n",
+    deserializer: (a: any) => a,
     comparer: (a: string, b: string) => {
       if (a > b) return 1;
       if (a < b) return -1;
@@ -142,9 +151,6 @@ async function makeIxStream(fileStream: Readable, outIxFilename: string) {
 
     await streamFinished(outIx);
   }
-
-  tmpobj.removeCallback();
-  tmpobj2.removeCallback();
 }
 
 async function makeIx(inFile: string, outIndex: string) {
