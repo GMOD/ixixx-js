@@ -27,7 +27,7 @@
     "access": "public"
   },
   "dependencies": {
-    "external-sorting": "^1.2.0",
+    "external-sort": "^1.0.0",
     "tmp": "^0.2.1"
   }
 }

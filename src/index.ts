@@ -4,7 +4,7 @@ import { once } from "events";
 import fs from "fs";
 import readline from "readline";
 import tmp from "tmp";
-import esort from "external-sorting";
+import esort from "external-sort";
 
 const streamFinished = promisify(finished); // (A)
 
@@ -94,17 +94,14 @@ async function makeIxStream(fileStream: Readable, outIxFilename: string) {
   }
 
   const tmpobj2 = tmp.fileSync();
+  const inSort = fs.createReadStream(tmpobj.name);
   const outSort = fs.createWriteStream(tmpobj2.name);
 
-  await esort({
-    input: fs.createReadStream(tmpobj.name),
-    output: outSort,
-    tempDir: __dirname,
-    maxHeap: 100000,
-  }).asc();
-
-  // superstitious streamFinished on the file that esort outputs
-  await streamFinished(outSort);
+  await esort(inSort, outSort, {
+    serializer: (a: any) => a,
+    deserializer: (a: any) => a + "\n",
+    comparer: (a: string, b: string) => a.localeCompare(b),
+  });
 
   const outIx = fs.createWriteStream(outIxFilename);
   try {
