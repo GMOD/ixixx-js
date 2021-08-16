@@ -1,3 +1,7 @@
+# v1.0.10
+
+- Use simple string compare rather than localeCompare
+
 # v1.0.9
 
 - Use new external sorting module that is ~2x faster than external-sorting

@@ -100,7 +100,11 @@ async function makeIxStream(fileStream: Readable, outIxFilename: string) {
   await esort(inSort, outSort, {
     serializer: (a: any) => a,
     deserializer: (a: any) => a + "\n",
-    comparer: (a: string, b: string) => a.localeCompare(b),
+    comparer: (a: string, b: string) => {
+      if (a > b) return 1;
+      if (a < b) return -1;
+      return 0;
+    },
   });
 
   const outIx = fs.createWriteStream(outIxFilename);
