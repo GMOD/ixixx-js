@@ -5,6 +5,8 @@ import readline from "readline";
 import { Readable } from "stream";
 import { once } from "events";
 
+import BigMap from "big-map-simple";
+
 const streamFinished = promisify(finished); // (A)
 
 // this file (ixixx.ts) is a translation of ixIxx.c from ucscGenomeBrowser/kent
@@ -115,7 +117,7 @@ async function makeIxStream(fileStream: Readable, outIndex: string) {
     input: fileStream,
   });
 
-  const map = new Map();
+  const map = new BigMap();
 
   for await (const line of rl) {
     const [id, ...text] = line.split(/\s+/);

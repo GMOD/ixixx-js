@@ -24,5 +24,8 @@
   },
   "publishConfig": {
     "access": "public"
+  },
+  "dependencies": {
+    "big-map-simple": "^2.0.0"
   }
 }
