@@ -1,5 +1,5 @@
 import { promisify } from "util";
-import { finished, Readable } from "stream";
+import { finished, pipeline, Readable, Transform } from "stream";
 import { once } from "events";
 import fs from "fs";
 import readline from "readline";
@@ -64,58 +64,43 @@ function initCharTables() {
   wordMiddleChars["-".charCodeAt(0)] = true;
 }
 
+class TrixTransform extends Transform {
+  _transform(chunk: any, encoding: any, callback: any) {
+    const [id, ...words] = chunk.toString().trim().split(/\s+/);
+    console.log(
+      words.map((word: string) => `${word.toLowerCase()} ${id}`).join("\n")
+    );
+
+    // Pass the chunk on.
+    callback(
+      null,
+      words.map((word: string) => `${word.toLowerCase()} ${id}`).join("\n")
+    );
+  }
+}
+
 async function makeIxStream(fileStream: Readable, outIxFilename: string) {
   initCharTables();
 
   const tmpobj = tmp.fileSync();
-  const out = fs.createWriteStream(tmpobj.name);
-  try {
-    const rl = readline.createInterface({
-      input: fileStream,
-    });
-
-    for await (const line of rl) {
-      const [id, ...words] = line.split(/\s+/);
-      for (let i = 0; i < words.length; i++) {
-        const word = words[i];
-        const res = out.write(`${word.toLowerCase()} ${id}\n`);
-
-        // Handle backpressure
-        // ref https://nodesource.com/blog/understanding-streams-in-nodejs/
-        if (!res) {
-          await once(out, "drain");
-        }
-      }
-    }
-  } finally {
-    out.end();
-
-    await streamFinished(out);
-  }
-
-  const tmpobj2 = tmp.fileSync();
-  const outSort = fs.createWriteStream(tmpobj2.name);
+  const outSort = fs.createWriteStream(tmpobj.name);
 
   await esort({
-    input: fs.createReadStream(tmpobj.name),
+    input: fileStream.pipe(new TrixTransform()),
     output: outSort,
     tempDir: __dirname,
-    maxHeap: 500000,
+    maxHeap: 50000,
   }).asc();
-
-  // superstitious streamFinished on the file that esort outputs
-  await streamFinished(outSort);
 
   const outIx = fs.createWriteStream(outIxFilename);
   try {
-    const readFinalStream = fs.createReadStream(tmpobj2.name);
-    const rl2 = readline.createInterface({
-      input: readFinalStream,
+    const rl = readline.createInterface({
+      input: fs.createReadStream(tmpobj.name),
     });
 
     let current;
     let buff = [];
-    for await (const line of rl2) {
+    for await (const line of rl) {
       const [id, data] = line.split(" ");
       if (current !== id) {
         if (buff.length) {
@@ -143,7 +128,6 @@ async function makeIxStream(fileStream: Readable, outIxFilename: string) {
   }
 
   tmpobj.removeCallback();
-  tmpobj2.removeCallback();
 }
 
 async function makeIx(inFile: string, outIndex: string) {
