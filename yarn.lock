@@ -65,18 +65,6 @@ external-sort@^1.0.0:
     debug "^4.3.1"
     mz-modules "^2.1.0"
 
-external-sorting@^1.2.0:
-  version "1.2.0"
-  resolved "https://registry.yarnpkg.com/external-sorting/-/external-sorting-1.2.0.tgz#e2f492be8caf171c0f5fcd5831b565bcd2117a46"
-  integrity sha512-VJ61/dKifQd2wmEPi3SeMnYTjCbeysPcAxfGpQzIbC2mEdgaNBhCWw+lM4Km8sEzYkOToxLT7XV80hdM1UykoQ==
-  dependencies:
-    fast-sort "^2.0.1"
-
-fast-sort@^2.0.1:
-  version "2.2.0"
-  resolved "https://registry.yarnpkg.com/fast-sort/-/fast-sort-2.2.0.tgz#20903763531fbcbb41c9df5ab1bf5f2cefc8476a"
-  integrity sha512-W7zqnn2zsYoQA87FKmYtgOsbJohOrh7XrtZrCVHN5XZKqTBTv5UG+rSS3+iWbg/nepRQUOu+wnas8BwtK8kiCg==
-
 fs.realpath@^1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/fs.realpath/-/fs.realpath-1.0.0.tgz#1504ad2523158caa40db4a2787cb01411994ea4f"
