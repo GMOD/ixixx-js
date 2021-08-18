@@ -1,3 +1,8 @@
+# v1.0.12
+
+- Use transform to reduce amount of data introduced to disk
+- Fix issue with last element not being written to index
+
 # v1.0.11
 
 - Use a smaller maxHeap size for faster operation
