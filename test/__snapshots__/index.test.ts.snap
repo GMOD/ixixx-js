@@ -1,12 +1,13 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`test 1`] = `
-"r123456789 heart,1
-r987654321 brain,1
+"r111111111 kidney,1
+r222222222 heart,1
+r333333333 brain,1
 "
 `;
 
 exports[`test 2`] = `
-"r12340000000000
+"r11110000000000
 "
 `;

@@ -6,7 +6,11 @@ import { Readable } from "stream";
 tmp.setGracefulCleanup();
 
 test("test", async () => {
-  const mytext = Readable.from(["heart r123456789\n", "brain r987654321\n"]);
+  const mytext = Readable.from([
+    "heart r222222222\n",
+    "brain r333333333\n",
+    "kidney r111111111\n",
+  ]);
   const l1 = tmp.fileSync();
   const l2 = tmp.fileSync();
   await ixIxxStream(mytext, l1.name, l2.name);
