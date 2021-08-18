@@ -1,5 +1,5 @@
 import { promisify } from "util";
-import { finished, Readable } from "stream";
+import { finished, Readable, Transform } from "stream";
 import { once } from "events";
 import fs from "fs";
 import readline from "readline";
@@ -66,44 +66,25 @@ function initCharTables() {
   wordMiddleChars["-".charCodeAt(0)] = true;
 }
 
+class TrixInputTransform extends Transform {
+  _transform(chunk: Buffer, encoding: any, done: () => void) {
+    const [id, ...words] = chunk.toString().trim().split(/\s+/);
+    words.forEach((word) => {
+      this.push(`${word.toLowerCase()} ${id}\n`);
+    });
+    done();
+  }
+}
+
 async function makeIxStream(fileStream: Readable, outIxFilename: string) {
   initCharTables();
 
   const tmpobj = tmp.fileSync({
-    prefix: "jbrowse-trix-in",
-    postfix: ".txt",
-  });
-  const out = fs.createWriteStream(tmpobj.name);
-  try {
-    const rl = readline.createInterface({
-      input: fileStream,
-    });
-
-    for await (const line of rl) {
-      const [id, ...words] = line.split(/\s+/);
-      for (let i = 0; i < words.length; i++) {
-        const word = words[i];
-        const res = out.write(`${word.toLowerCase()} ${id}\n`);
-
-        // Handle backpressure
-        // ref https://nodesource.com/blog/understanding-streams-in-nodejs/
-        if (!res) {
-          await once(out, "drain");
-        }
-      }
-    }
-  } finally {
-    out.end();
-
-    await streamFinished(out);
-  }
-
-  const tmpobj2 = tmp.fileSync({
     prefix: "jbrowse-trix-out",
     postfix: ".txt",
   });
-  const inSort = fs.createReadStream(tmpobj.name);
-  const outSort = fs.createWriteStream(tmpobj2.name);
+  const inSort = fileStream.pipe(new TrixInputTransform());
+  const outSort = fs.createWriteStream(tmpobj.name);
 
   await esort(inSort, outSort, {
     maxHeap: 1024 * 1024,
@@ -118,14 +99,13 @@ async function makeIxStream(fileStream: Readable, outIxFilename: string) {
 
   const outIx = fs.createWriteStream(outIxFilename);
   try {
-    const readFinalStream = fs.createReadStream(tmpobj2.name);
-    const rl2 = readline.createInterface({
-      input: readFinalStream,
+    const rl = readline.createInterface({
+      input: fs.createReadStream(tmpobj.name),
     });
 
     let current;
     let buff = [];
-    for await (const line of rl2) {
+    for await (const line of rl) {
       const [id, data] = line.split(" ");
       if (current !== id) {
         if (buff.length) {
