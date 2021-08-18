@@ -146,6 +146,11 @@ async function makeIxStream(fileStream: Readable, outIxFilename: string) {
       }
       buff.push(data);
     }
+    if (buff.length) {
+      outIx.write(
+        `${current} ${buff.map((elt, idx) => `${elt},${idx + 1}`).join(" ")}\n`
+      );
+    }
   } finally {
     outIx.end();
 

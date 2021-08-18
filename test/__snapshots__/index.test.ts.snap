@@ -1,0 +1,12 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`test 1`] = `
+"r123456789 heart,1
+r987654321 brain,1
+"
+`;
+
+exports[`test 2`] = `
+"r12340000000000
+"
+`;
