@@ -79,15 +79,20 @@ class TrixInputTransform extends Transform {
 async function makeIxStream(fileStream: Readable, outIxFilename: string) {
   initCharTables();
 
+  const tmpdir = tmp.dirSync({
+    prefix: "jbrowse-trix-sort",
+    unsafeCleanup: true,
+  });
   const tmpobj = tmp.fileSync({
-    prefix: "jbrowse-trix-out",
-    postfix: ".txt",
+    dir: tmpdir.name,
+    prefix: "sort",
   });
   const inSort = fileStream.pipe(new TrixInputTransform());
   const outSort = fs.createWriteStream(tmpobj.name);
 
   await esort(inSort, outSort, {
     maxHeap: 1024 * 1024,
+    tempDir: tmpdir.name,
     serializer: (a: any) => a + "\n",
     deserializer: (a: any) => a,
     comparer: (a: string, b: string) => {
@@ -136,6 +141,9 @@ async function makeIxStream(fileStream: Readable, outIxFilename: string) {
 
     await streamFinished(outIx);
   }
+
+  // tmpobj.removeCallback();
+  // tmpdir.removeCallback();
 }
 
 async function makeIx(inFile: string, outIndex: string) {

@@ -2,6 +2,7 @@
 
 - Use transform to reduce amount of data introduced to disk
 - Fix issue with last element not being written to index
+- Cleanup temp files
 
 # v1.0.11
 
