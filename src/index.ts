@@ -76,39 +76,17 @@ class TrixInputTransform extends Transform {
   }
 }
 
-class TrixOutputTransform extends Transform {
-  private current = "";
-  private buff = [] as string[];
-
-  _transform(chunk: Buffer, encoding: any, done: (...args: any) => void) {
-    console.log("wtf");
-    const [id, data] = chunk.toString().split(" ");
-    if (this.current !== id) {
-      this.current = id;
-    }
-
-    if (this.buff.length) {
-      console.log("here");
-      this.push(
-        `${this.current} ${this.buff
-          .map((elt, idx) => `${elt},${idx + 1}`)
-          .join(" ")}\n`
-      );
-      this.buff = [];
-    }
-    this.buff.push(data);
-
-    done();
-  }
-}
-
 async function makeIxStream(fileStream: Readable, outIxFilename: string) {
   initCharTables();
 
+  const tmpobj = tmp.fileSync({
+    prefix: "jbrowse-trix-out",
+    postfix: ".txt",
+  });
   const inSort = fileStream.pipe(new TrixInputTransform());
-  const outIx = fs.createWriteStream(outIxFilename);
+  const outSort = fs.createWriteStream(tmpobj.name);
 
-  await esort(inSort, new TrixOutputTransform().pipe(outIx), {
+  await esort(inSort, outSort, {
     maxHeap: 1024 * 1024,
     serializer: (a: any) => a + "\n",
     deserializer: (a: any) => a,
@@ -118,6 +96,46 @@ async function makeIxStream(fileStream: Readable, outIxFilename: string) {
       return 0;
     },
   });
+
+  const outIx = fs.createWriteStream(outIxFilename);
+  try {
+    const rl = readline.createInterface({
+      input: fs.createReadStream(tmpobj.name),
+    });
+
+    let current;
+    let buff = [];
+    for await (const line of rl) {
+      const [id, data] = line.split(" ");
+      if (current !== id) {
+        if (buff.length) {
+          const res = outIx.write(
+            `${current} ${buff
+              .map((elt, idx) => `${elt},${idx + 1}`)
+              .join(" ")}\n`
+          );
+          buff = [];
+
+          // Handle backpressure
+          // ref https://nodesource.com/blog/understanding-streams-in-nodejs/
+          if (!res) {
+            await once(outIx, "drain");
+          }
+        }
+        current = id;
+      }
+      buff.push(data);
+    }
+    if (buff.length) {
+      outIx.write(
+        `${current} ${buff.map((elt, idx) => `${elt},${idx + 1}`).join(" ")}\n`
+      );
+    }
+  } finally {
+    outIx.end();
+
+    await streamFinished(outIx);
+  }
 }
 
 async function makeIx(inFile: string, outIndex: string) {
