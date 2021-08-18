@@ -1,5 +1,5 @@
 import { promisify } from "util";
-import { finished, Readable } from "stream";
+import { finished, Readable, Transform } from "stream";
 import { once } from "events";
 import fs from "fs";
 import readline from "readline";
@@ -67,17 +67,12 @@ function initCharTables() {
 }
 
 class TrixTransform extends Transform {
-  _transform(chunk: any, encoding: any, callback: any) {
+  _transform(chunk: Buffer, encoding: any, done: () => void) {
     const [id, ...words] = chunk.toString().trim().split(/\s+/);
-    console.log(
-      words.map((word: string) => `${word.toLowerCase()} ${id}`).join("\n")
-    );
-
-    // Pass the chunk on.
-    callback(
-      null,
-      words.map((word: string) => `${word.toLowerCase()} ${id}`).join("\n")
-    );
+    words.forEach((word) => {
+      this.push(`${word.toLowerCase()} ${id}\n`);
+    });
+    done();
   }
 }
 
@@ -88,7 +83,7 @@ async function makeIxStream(fileStream: Readable, outIxFilename: string) {
     prefix: "jbrowse-trix-out",
     postfix: ".txt",
   });
-  const inSort = fileStream.pipe(new TrixTransform())
+  const inSort = fileStream.pipe(new TrixTransform());
   const outSort = fs.createWriteStream(tmpobj.name);
 
   await esort(inSort, outSort, {
