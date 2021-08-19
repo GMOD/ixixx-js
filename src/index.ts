@@ -83,12 +83,43 @@ async function makeIxStream(fileStream: Readable, outIxFilename: string) {
     prefix: "jbrowse-trix-sort",
     unsafeCleanup: true,
   });
+
   const tmpobj = tmp.fileSync({
-    dir: tmpdir.name,
-    prefix: "sort",
+    prefix: "jbrowse-trix-in",
+    postfix: ".txt",
   });
-  const inSort = fileStream.pipe(new TrixInputTransform());
-  const outSort = fs.createWriteStream(tmpobj.name);
+  const out = fs.createWriteStream(tmpobj.name);
+  try {
+    const rl = readline.createInterface({
+      input: fileStream,
+    });
+
+    for await (const line of rl) {
+      const [id, ...words] = line.split(/\s+/);
+      for (let i = 0; i < words.length; i++) {
+        const word = words[i];
+        const res = out.write(`${word.toLowerCase()} ${id}\n`);
+
+        // Handle backpressure
+        // ref https://nodesource.com/blog/understanding-streams-in-nodejs/
+        if (!res) {
+          await once(out, "drain");
+        }
+      }
+    }
+  } finally {
+    out.end();
+
+    await streamFinished(out);
+  }
+
+  const tmpobj2 = tmp.fileSync({
+    prefix: "jbrowse-trix-out",
+    postfix: ".txt",
+  });
+
+  const inSort = fs.createReadStream(tmpobj.name);
+  const outSort = fs.createWriteStream(tmpobj2.name);
 
   await esort({
     input: inSort,
@@ -99,7 +130,7 @@ async function makeIxStream(fileStream: Readable, outIxFilename: string) {
   const outIx = fs.createWriteStream(outIxFilename);
   try {
     const rl = readline.createInterface({
-      input: fs.createReadStream(tmpobj.name),
+      input: fs.createReadStream(tmpobj2.name),
     });
 
     let current;
