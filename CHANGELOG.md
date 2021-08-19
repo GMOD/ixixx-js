@@ -1,3 +1,7 @@
+# v1.0.14
+
+- Revert #6 transformer change
+
 # v1.0.13
 
 - Change from external-sort -> external-sorting npm module due to bug in their module
