@@ -4,7 +4,7 @@ import { once } from "events";
 import fs from "fs";
 import readline from "readline";
 import tmp from "tmp";
-import esort from "external-sort";
+import esort from "external-sorting";
 
 tmp.setGracefulCleanup();
 
@@ -90,17 +90,11 @@ async function makeIxStream(fileStream: Readable, outIxFilename: string) {
   const inSort = fileStream.pipe(new TrixInputTransform());
   const outSort = fs.createWriteStream(tmpobj.name);
 
-  await esort(inSort, outSort, {
-    maxHeap: 1024 * 1024,
+  await esort({
+    input: inSort,
+    output: outSort,
     tempDir: tmpdir.name,
-    serializer: (a: any) => a + "\n",
-    deserializer: (a: any) => a,
-    comparer: (a: string, b: string) => {
-      if (a > b) return 1;
-      if (a < b) return -1;
-      return 0;
-    },
-  });
+  }).asc();
 
   const outIx = fs.createWriteStream(outIxFilename);
   try {
