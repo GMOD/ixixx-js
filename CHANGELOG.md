@@ -1,3 +1,7 @@
+# v1.0.13
+
+- Change from external-sort -> external-sorting npm module due to bug in their module
+
 # v1.0.12
 
 - Use transform to reduce amount of data introduced to disk
