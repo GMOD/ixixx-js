@@ -48,5 +48,4 @@ bindin0000000000
 signal0000000114
 ```
 
-So that when you type e.g. `sig` it can lookup where approximately you want to start looking in the ixx file and then perform byte range requests against the ix file
-
+So that when you type e.g. `sig` it can lookup where approximately you want to start looking in the ixx file and then perform byte range requests against the ix file, and find that you are looking for MyGene0001
