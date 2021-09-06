@@ -1,3 +1,7 @@
+# v1.0.15
+
+- Cleanup files when done
+
 # v1.0.14
 
 - Revert #6 transformer change
