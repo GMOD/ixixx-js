@@ -163,11 +163,11 @@ async function makeIxStream(fileStream: Readable, outIxFilename: string) {
     }
   } finally {
     outIx.end();
+    await streamFinished(outIx);
 
     tmpobj.removeCallback();
     tmpobj2.removeCallback();
     tmpdir.removeCallback();
-    await streamFinished(outIx);
   }
 }
 
