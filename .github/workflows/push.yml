@@ -1,0 +1,22 @@
+name: Push
+
+on: push
+
+jobs:
+  test:
+    name: Test and typecheck on node 14.x and ubuntu-latest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Use Node.js 14.x
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+      - name: Install deps (with cache)
+        uses: bahmutov/npm-install@v1
+      - name: Test codebase
+        run: yarn test
+      - name: Upload coverage
+        uses: codecov/codecov-action@v2
+      - name: Typecheck codebase
+        run: yarn tsc
