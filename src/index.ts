@@ -129,6 +129,11 @@ async function makeIxStream(fileStream: Readable, outIxFilename: string) {
     output: r,
     tempDir: tmpdir.name,
   }).asc();
+
+  // see note https://stackoverflow.com/questions/37837132/
+  // "Note for others: the finish event only triggers if the caller handles the
+  // stream properly. If not (e.g. AWS SDK S3 uploads) then you can use the
+  // close event instead, to avoid the await sitting there forever."
   await new Promise((resolve) => out.on("close", resolve));
 }
 
