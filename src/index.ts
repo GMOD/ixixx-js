@@ -132,6 +132,8 @@ async function makeIxStream(fileStream: Readable, outIxFilename: string) {
     output: r,
     tempDir: tmpdir.name,
   }).asc();
+
+  await streamFinished(out);
 }
 
 async function makeIx(inFile: string, outIndex: string) {
