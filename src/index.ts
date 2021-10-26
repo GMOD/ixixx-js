@@ -1,9 +1,9 @@
 import { promisify } from "util";
-import { finished, Readable, PassThrough, Transform } from "stream";
+import { finished, Readable, Transform } from "stream";
+import { once } from "events";
 
 import pump from "pump";
 import split2 from "split2";
-import { once } from "events";
 import fs from "fs";
 import readline from "readline";
 import tmp from "tmp";
@@ -70,47 +70,44 @@ function initCharTables() {
 }
 
 class TrixInputTransform extends Transform {
-  _transform(chunk: Buffer, encoding: any, callback: Function) {
+  _transform(chunk: Buffer, encoding: any, done: Function) {
     const [id, ...words] = chunk.toString().split(/\s+/);
-    callback(
-      null,
-      words.map((word) => `${word.toLowerCase()} ${id}\n`).join("")
-    );
+
+    this.push(words.map((word) => `${word.toLowerCase()} ${id}\n`).join(""));
+    done();
   }
 }
 
 class TrixOutputTransform extends Transform {
   buff = [] as string[];
   current = "";
-  _transform(chunk: Buffer, encoding: any, callback: Function) {
-    const [id, data] = chunk.toString().split(" ");
+  _transform(chunk: Buffer, encoding: any, done: Function) {
+    // weird: need to strip nulls from string, xref
+    // https://github.com/GMOD/jbrowse-components/pull/2451
+    let [id, data] = chunk.toString().replace(/\0/g, "").split(" ");
     if (this.current !== id) {
       if (this.buff.length) {
-        callback(
-          null,
+        this.push(
           `${this.current} ${this.buff
             .map((elt, idx) => `${elt},${idx + 1}`)
             .join(" ")}\n`
         );
         this.buff = [];
-      } else {
-        callback(null, null);
       }
       this.current = id;
-    } else {
-      callback(null, null);
     }
     this.buff.push(data);
+    done();
   }
-  _flush(callback: Function) {
+  _flush(done: Function) {
     if (this.buff.length) {
-      callback(
-        null,
+      this.push(
         `${this.current} ${this.buff
           .map((elt, idx) => `${elt},${idx + 1}`)
           .join(" ")}\n`
       );
     }
+    done();
   }
 }
 
@@ -124,8 +121,8 @@ async function makeIxStream(fileStream: Readable, outIxFilename: string) {
   const out = fs.createWriteStream(outIxFilename);
 
   // see https://stackoverflow.com/questions/68835344/ for explainer of writer
-  const r = new PassThrough();
-  r.pipe(split2()).pipe(new TrixOutputTransform()).pipe(out);
+  const r = split2();
+  pump(r, new TrixOutputTransform(), out);
   await esort({
     //@ts-ignore
     input: pump(fileStream, split2(), new TrixInputTransform()),
@@ -134,7 +131,11 @@ async function makeIxStream(fileStream: Readable, outIxFilename: string) {
     tempDir: tmpdir.name,
   }).asc();
 
-  await streamFinished(out);
+  // see note https://stackoverflow.com/questions/37837132/
+  // "Note for others: the finish event only triggers if the caller handles the
+  // stream properly. If not (e.g. AWS SDK S3 uploads) then you can use the
+  // close event instead, to avoid the await sitting there forever."
+  await new Promise((resolve) => out.on("close", resolve));
 }
 
 async function makeIx(inFile: string, outIndex: string) {
