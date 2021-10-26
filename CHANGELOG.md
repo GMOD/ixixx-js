@@ -1,3 +1,8 @@
+# v1.0.16
+
+- Improved streaming strategy and also fix intermittent failure. Thanks to
+  @bbimber for reporting https://github.com/GMOD/jbrowse-components/issues/2354
+
 # v1.0.15
 
 - Cleanup files when done
