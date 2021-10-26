@@ -24,4 +24,4 @@ test("test", async () => {
     l1.removeCallback();
     l2.removeCallback();
   }
-}, 10000);
+});

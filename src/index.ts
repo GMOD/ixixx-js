@@ -101,8 +101,10 @@ class TrixOutputTransform extends Transform {
       callback(null, null);
     }
     this.buff.push(data);
+    console.log("transform", { len: this.buff });
   }
   _flush(callback: Function) {
+    console.log("final", { curr: this.current, len: this.buff });
     if (this.buff.length) {
       callback(
         null,
@@ -111,6 +113,7 @@ class TrixOutputTransform extends Transform {
           .join(" ")}\n`
       );
     }
+    callback(null, null);
   }
 }
 
@@ -124,8 +127,9 @@ async function makeIxStream(fileStream: Readable, outIxFilename: string) {
   const out = fs.createWriteStream(outIxFilename);
 
   // see https://stackoverflow.com/questions/68835344/ for explainer of writer
-  const r = new PassThrough();
-  r.pipe(split2()).pipe(new TrixOutputTransform()).pipe(out);
+  const r = split2();
+  let ret = pump(r, new TrixOutputTransform(), out);
+  console.log("her3");
   await esort({
     //@ts-ignore
     input: pump(fileStream, split2(), new TrixInputTransform()),
@@ -133,8 +137,10 @@ async function makeIxStream(fileStream: Readable, outIxFilename: string) {
     output: r,
     tempDir: tmpdir.name,
   }).asc();
+  console.log("her2");
 
-  await streamFinished(out);
+  await streamFinished(ret);
+  console.log("her1");
 }
 
 async function makeIx(inFile: string, outIndex: string) {
@@ -147,6 +153,7 @@ function getPrefix(word: string) {
 }
 
 async function makeIxx(inIx: string, outIxx: string) {
+  console.log("her1");
   const out = fs.createWriteStream(outIxx);
   try {
     const fileStream = fs.createReadStream(inIx);
