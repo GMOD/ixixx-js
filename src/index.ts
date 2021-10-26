@@ -82,38 +82,31 @@ class TrixInputTransform extends Transform {
 class TrixOutputTransform extends Transform {
   buff = [] as string[];
   current = "";
-  _transform(chunk: Buffer, encoding: any, callback: Function) {
+  _transform(chunk: Buffer, encoding: any, done: Function) {
     const [id, data] = chunk.toString().split(" ");
     if (this.current !== id) {
       if (this.buff.length) {
-        callback(
-          null,
+        this.push(
           `${this.current} ${this.buff
             .map((elt, idx) => `${elt},${idx + 1}`)
             .join(" ")}\n`
         );
         this.buff = [];
-      } else {
-        callback(null, null);
       }
       this.current = id;
-    } else {
-      callback(null, null);
     }
     this.buff.push(data);
-    console.log("transform", { len: this.buff });
+    done();
   }
-  _flush(callback: Function) {
-    console.log("final", { curr: this.current, len: this.buff });
+  _flush(done: Function) {
     if (this.buff.length) {
-      callback(
-        null,
+      this.push(
         `${this.current} ${this.buff
           .map((elt, idx) => `${elt},${idx + 1}`)
           .join(" ")}\n`
       );
     }
-    callback(null, null);
+    done();
   }
 }
 
@@ -128,8 +121,7 @@ async function makeIxStream(fileStream: Readable, outIxFilename: string) {
 
   // see https://stackoverflow.com/questions/68835344/ for explainer of writer
   const r = split2();
-  let ret = pump(r, new TrixOutputTransform(), out);
-  console.log("her3");
+  pump(r, new TrixOutputTransform(), out);
   await esort({
     //@ts-ignore
     input: pump(fileStream, split2(), new TrixInputTransform()),
@@ -137,10 +129,7 @@ async function makeIxStream(fileStream: Readable, outIxFilename: string) {
     output: r,
     tempDir: tmpdir.name,
   }).asc();
-  console.log("her2");
-
-  await streamFinished(ret);
-  console.log("her1");
+  await new Promise((resolve) => out.on("close", resolve));
 }
 
 async function makeIx(inFile: string, outIndex: string) {
@@ -153,7 +142,6 @@ function getPrefix(word: string) {
 }
 
 async function makeIxx(inIx: string, outIxx: string) {
-  console.log("her1");
   const out = fs.createWriteStream(outIxx);
   try {
     const fileStream = fs.createReadStream(inIx);
