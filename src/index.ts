@@ -1,9 +1,9 @@
 import { promisify } from "util";
-import { finished, Readable, PassThrough, Transform } from "stream";
+import { finished, Readable, Transform } from "stream";
+import { once } from "events";
 
 import pump from "pump";
 import split2 from "split2";
-import { once } from "events";
 import fs from "fs";
 import readline from "readline";
 import tmp from "tmp";
@@ -70,12 +70,11 @@ function initCharTables() {
 }
 
 class TrixInputTransform extends Transform {
-  _transform(chunk: Buffer, encoding: any, callback: Function) {
+  _transform(chunk: Buffer, encoding: any, done: Function) {
     const [id, ...words] = chunk.toString().split(/\s+/);
-    callback(
-      null,
-      words.map((word) => `${word.toLowerCase()} ${id}\n`).join("")
-    );
+
+    this.push(words.map((word) => `${word.toLowerCase()} ${id}\n`).join(""));
+    done();
   }
 }
 
@@ -83,7 +82,9 @@ class TrixOutputTransform extends Transform {
   buff = [] as string[];
   current = "";
   _transform(chunk: Buffer, encoding: any, done: Function) {
-    const [id, data] = chunk.toString().split(" ");
+    // weird: need to strip nulls from string, xref
+    // https://github.com/GMOD/jbrowse-components/pull/2451
+    let [id, data] = chunk.toString().replace(/\0/g, "").split(" ");
     if (this.current !== id) {
       if (this.buff.length) {
         this.push(

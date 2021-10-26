@@ -1,3 +1,9 @@
+# v1.0.17
+
+- Fix issue where nulls appear in stream on older node versions, but are
+  stripped out xref https://github.com/GMOD/jbrowse-components/pull/2451
+- Fix issue where streamFinished is not called always, so use close instead
+
 # v1.0.16
 
 - Improved streaming strategy and also fix intermittent failure. Thanks to
