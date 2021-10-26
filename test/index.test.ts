@@ -14,6 +14,8 @@ test("test", async () => {
       "brain r333333333\n",
       "kidney r111111111\n",
       "leg r111111111\n",
+      "toenail r111111111\n",
+      "scalp r9999\n",
     ]);
     await ixIxxStream(mytext, l1.name, l2.name);
     const r1 = fs.readFileSync(l1.name, "utf8");
