@@ -13,6 +13,7 @@
     "@types/node": "^16.0.1",
     "@types/pump": "^1.1.1",
     "@types/split2": "^3.2.1",
+    "@types/stream-buffers": "^3.0.4",
     "@types/tmp": "^0.2.1",
     "jest": "^27.0.6",
     "rimraf": "^3.0.2",
@@ -36,6 +37,7 @@
     "external-sorting": "^1.2.0",
     "pump": "^3.0.0",
     "split2": "^4.1.0",
+    "stream-buffers": "^3.0.2",
     "tmp": "^0.2.1"
   }
 }

@@ -1,5 +1,7 @@
 import { promisify } from "util";
-import { finished, Readable, Transform } from "stream";
+import { finished, Readable, PassThrough, Transform } from "stream";
+
+import { WritableStreamBuffer } from "stream-buffers";
 import pump from "pump";
 import split2 from "split2";
 import { once } from "events";
@@ -78,6 +80,45 @@ class TrixInputTransform extends Transform {
   }
 }
 
+class TrixOutputTransform extends Transform {
+  buff = [] as string[];
+  current = "";
+  _transform(chunk: Buffer, encoding: any, callback: Function) {
+    const [id, data] = chunk.toString().split(" ");
+    console.log("wtf", { id, data });
+    if (this.current !== id) {
+      if (this.buff.length) {
+        const r = `${this.current} ${this.buff
+          .map((elt, idx) => `${elt},${idx + 1}`)
+          .join(" ")}\n`;
+        console.log({ r });
+        callback(
+          null,
+          `${this.current} ${this.buff
+            .map((elt, idx) => `${elt},${idx + 1}`)
+            .join(" ")}\n`
+        );
+        this.buff = [];
+      } else {
+        callback(null, null);
+      }
+      this.current = id;
+    }
+    this.buff.push(data);
+  }
+  _flush(callback: Function) {
+    console.log("k1", this.buff);
+    if (this.buff.length) {
+      callback(
+        null,
+        `${this.current} ${this.buff
+          .map((elt, idx) => `${elt},${idx + 1}`)
+          .join(" ")}\n`
+      );
+    }
+  }
+}
+
 async function makeIxStream(fileStream: Readable, outIxFilename: string) {
   initCharTables();
 
@@ -86,61 +127,27 @@ async function makeIxStream(fileStream: Readable, outIxFilename: string) {
     unsafeCleanup: true,
   });
 
-  const tmpobj = tmp.fileSync({
-    prefix: "jbrowse-trix-out",
-    postfix: ".txt",
-  });
+  const out = fs.createWriteStream(outIxFilename);
 
-  const outSort = fs.createWriteStream(tmpobj.name);
-
-  await esort({
+  const r = new PassThrough();
+  r.pipe(split2()).pipe(new TrixOutputTransform()).pipe(out);
+  const p = esort({
     //@ts-ignore
     input: pump(fileStream, split2(), new TrixInputTransform()),
-    output: outSort,
+    //@ts-ignore
+    output: r,
     tempDir: tmpdir.name,
   }).asc();
 
-  const outIx = fs.createWriteStream(outIxFilename);
-  try {
-    const rl = readline.createInterface({
-      input: fs.createReadStream(tmpobj.name),
-    });
+  await p;
+  // r.on("data", (chunk) => {
+  //   console.log("k1", chunk.toString());
+  // });
 
-    let current;
-    let buff = [];
-    for await (const line of rl) {
-      const [id, data] = line.split(" ");
-      if (current !== id) {
-        if (buff.length) {
-          const res = outIx.write(
-            `${current} ${buff
-              .map((elt, idx) => `${elt},${idx + 1}`)
-              .join(" ")}\n`
-          );
-          buff = [];
+  // out.end();
 
-          // Handle backpressure
-          // ref https://nodesource.com/blog/understanding-streams-in-nodejs/
-          if (!res) {
-            await once(outIx, "drain");
-          }
-        }
-        current = id;
-      }
-      buff.push(data);
-    }
-    if (buff.length) {
-      outIx.write(
-        `${current} ${buff.map((elt, idx) => `${elt},${idx + 1}`).join(" ")}\n`
-      );
-    }
-  } finally {
-    outIx.end();
-
-    tmpobj.removeCallback();
-    tmpdir.removeCallback();
-    await streamFinished(outIx);
-  }
+  // tmpdir.removeCallback();
+  // await streamFinished(out);
 }
 
 async function makeIx(inFile: string, outIndex: string) {
