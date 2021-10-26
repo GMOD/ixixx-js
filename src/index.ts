@@ -119,7 +119,6 @@ async function makeIxStream(fileStream: Readable, outIxFilename: string) {
 
   const tmpdir = tmp.dirSync({
     prefix: "jbrowse-trix-sort",
-    unsafeCleanup: true,
   });
 
   const out = fs.createWriteStream(outIxFilename);
@@ -133,8 +132,6 @@ async function makeIxStream(fileStream: Readable, outIxFilename: string) {
     output: r,
     tempDir: tmpdir.name,
   }).asc();
-
-  tmpdir.removeCallback();
 }
 
 async function makeIx(inFile: string, outIndex: string) {
