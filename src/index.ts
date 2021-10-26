@@ -1,5 +1,8 @@
 import { promisify } from "util";
-import { finished, Readable, Transform } from "stream";
+import { finished, Readable, PassThrough, Transform } from "stream";
+
+import pump from "pump";
+import split2 from "split2";
 import { once } from "events";
 import fs from "fs";
 import readline from "readline";
@@ -67,12 +70,47 @@ function initCharTables() {
 }
 
 class TrixInputTransform extends Transform {
-  _transform(chunk: Buffer, encoding: any, done: () => void) {
-    const [id, ...words] = chunk.toString().trim().split(/\s+/);
-    words.forEach((word) => {
-      this.push(`${word.toLowerCase()} ${id}\n`);
-    });
-    done();
+  _transform(chunk: Buffer, encoding: any, callback: Function) {
+    const [id, ...words] = chunk.toString().split(/\s+/);
+    callback(
+      null,
+      words.map((word) => `${word.toLowerCase()} ${id}\n`).join("")
+    );
+  }
+}
+
+class TrixOutputTransform extends Transform {
+  buff = [] as string[];
+  current = "";
+  _transform(chunk: Buffer, encoding: any, callback: Function) {
+    const [id, data] = chunk.toString().split(" ");
+    if (this.current !== id) {
+      if (this.buff.length) {
+        callback(
+          null,
+          `${this.current} ${this.buff
+            .map((elt, idx) => `${elt},${idx + 1}`)
+            .join(" ")}\n`
+        );
+        this.buff = [];
+      } else {
+        callback(null, null);
+      }
+      this.current = id;
+    } else {
+      callback(null, null);
+    }
+    this.buff.push(data);
+  }
+  _flush(callback: Function) {
+    if (this.buff.length) {
+      callback(
+        null,
+        `${this.current} ${this.buff
+          .map((elt, idx) => `${elt},${idx + 1}`)
+          .join(" ")}\n`
+      );
+    }
   }
 }
 
@@ -81,94 +119,22 @@ async function makeIxStream(fileStream: Readable, outIxFilename: string) {
 
   const tmpdir = tmp.dirSync({
     prefix: "jbrowse-trix-sort",
-    unsafeCleanup: true,
   });
 
-  const tmpobj = tmp.fileSync({
-    prefix: "jbrowse-trix-in",
-    postfix: ".txt",
-  });
-  const out = fs.createWriteStream(tmpobj.name);
-  try {
-    const rl = readline.createInterface({
-      input: fileStream,
-    });
+  const out = fs.createWriteStream(outIxFilename);
 
-    for await (const line of rl) {
-      const [id, ...words] = line.split(/\s+/);
-      for (let i = 0; i < words.length; i++) {
-        const word = words[i];
-        const res = out.write(`${word.toLowerCase()} ${id}\n`);
-
-        // Handle backpressure
-        // ref https://nodesource.com/blog/understanding-streams-in-nodejs/
-        if (!res) {
-          await once(out, "drain");
-        }
-      }
-    }
-  } finally {
-    out.end();
-
-    await streamFinished(out);
-  }
-
-  const tmpobj2 = tmp.fileSync({
-    prefix: "jbrowse-trix-out",
-    postfix: ".txt",
-  });
-
-  const inSort = fs.createReadStream(tmpobj.name);
-  const outSort = fs.createWriteStream(tmpobj2.name);
-
+  // see https://stackoverflow.com/questions/68835344/ for explainer of writer
+  const r = new PassThrough();
+  r.pipe(split2()).pipe(new TrixOutputTransform()).pipe(out);
   await esort({
-    input: inSort,
-    output: outSort,
+    //@ts-ignore
+    input: pump(fileStream, split2(), new TrixInputTransform()),
+    //@ts-ignore
+    output: r,
     tempDir: tmpdir.name,
   }).asc();
 
-  const outIx = fs.createWriteStream(outIxFilename);
-  try {
-    const rl = readline.createInterface({
-      input: fs.createReadStream(tmpobj2.name),
-    });
-
-    let current;
-    let buff = [];
-    for await (const line of rl) {
-      const [id, data] = line.split(" ");
-      if (current !== id) {
-        if (buff.length) {
-          const res = outIx.write(
-            `${current} ${buff
-              .map((elt, idx) => `${elt},${idx + 1}`)
-              .join(" ")}\n`
-          );
-          buff = [];
-
-          // Handle backpressure
-          // ref https://nodesource.com/blog/understanding-streams-in-nodejs/
-          if (!res) {
-            await once(outIx, "drain");
-          }
-        }
-        current = id;
-      }
-      buff.push(data);
-    }
-    if (buff.length) {
-      outIx.write(
-        `${current} ${buff.map((elt, idx) => `${elt},${idx + 1}`).join(" ")}\n`
-      );
-    }
-  } finally {
-    outIx.end();
-
-    tmpobj.removeCallback();
-    tmpobj2.removeCallback();
-    tmpdir.removeCallback();
-    await streamFinished(outIx);
-  }
+  await streamFinished(out);
 }
 
 async function makeIx(inFile: string, outIndex: string) {
