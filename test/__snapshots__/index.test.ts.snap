@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`test 1`] = `
-"r111111111 kidney,1
+"r111111111 kidney,1 leg,2
 r222222222 heart,1
 r333333333 brain,1
 "
