@@ -123,6 +123,7 @@ async function makeIxStream(fileStream: Readable, outIxFilename: string) {
 
   const out = fs.createWriteStream(outIxFilename);
 
+  // see https://stackoverflow.com/questions/68835344/ for explainer of writer
   const r = new PassThrough();
   r.pipe(split2()).pipe(new TrixOutputTransform()).pipe(out);
   await esort({
