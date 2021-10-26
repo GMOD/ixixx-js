@@ -1,7 +1,6 @@
 import { promisify } from "util";
 import { finished, Readable, PassThrough, Transform } from "stream";
 
-import { WritableStreamBuffer } from "stream-buffers";
 import pump from "pump";
 import split2 from "split2";
 import { once } from "events";
@@ -85,13 +84,8 @@ class TrixOutputTransform extends Transform {
   current = "";
   _transform(chunk: Buffer, encoding: any, callback: Function) {
     const [id, data] = chunk.toString().split(" ");
-    console.log("wtf", { id, data });
     if (this.current !== id) {
       if (this.buff.length) {
-        const r = `${this.current} ${this.buff
-          .map((elt, idx) => `${elt},${idx + 1}`)
-          .join(" ")}\n`;
-        console.log({ r });
         callback(
           null,
           `${this.current} ${this.buff
@@ -103,11 +97,12 @@ class TrixOutputTransform extends Transform {
         callback(null, null);
       }
       this.current = id;
+    } else {
+      callback(null, null);
     }
     this.buff.push(data);
   }
   _flush(callback: Function) {
-    console.log("k1", this.buff);
     if (this.buff.length) {
       callback(
         null,
@@ -131,7 +126,7 @@ async function makeIxStream(fileStream: Readable, outIxFilename: string) {
 
   const r = new PassThrough();
   r.pipe(split2()).pipe(new TrixOutputTransform()).pipe(out);
-  const p = esort({
+  await esort({
     //@ts-ignore
     input: pump(fileStream, split2(), new TrixInputTransform()),
     //@ts-ignore
@@ -139,15 +134,7 @@ async function makeIxStream(fileStream: Readable, outIxFilename: string) {
     tempDir: tmpdir.name,
   }).asc();
 
-  await p;
-  // r.on("data", (chunk) => {
-  //   console.log("k1", chunk.toString());
-  // });
-
-  // out.end();
-
-  // tmpdir.removeCallback();
-  // await streamFinished(out);
+  tmpdir.removeCallback();
 }
 
 async function makeIx(inFile: string, outIndex: string) {
