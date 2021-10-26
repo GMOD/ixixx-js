@@ -21,10 +21,24 @@ test("test simple", async () => {
   expect(r2).toMatchSnapshot();
 });
 
-test("test volvox", async () => {
+test("volvox sans descriptions", async () => {
   const l1 = tmp.fileSync();
   const l2 = tmp.fileSync();
   const mytext = fs.createReadStream(require.resolve("./volvox.txt"));
+
+  await ixIxxStream(mytext, l1.name, l2.name);
+  const r1 = fs.readFileSync(l1.name, "utf8");
+  const r2 = fs.readFileSync(l2.name, "utf8");
+  expect(r1).toMatchSnapshot();
+  expect(r2).toMatchSnapshot();
+});
+
+test("volvox with descriptions", async () => {
+  const l1 = tmp.fileSync();
+  const l2 = tmp.fileSync();
+  const mytext = fs.createReadStream(
+    require.resolve("./volvox_with_descriptions.txt")
+  );
 
   await ixIxxStream(mytext, l1.name, l2.name);
   const r1 = fs.readFileSync(l1.name, "utf8");
