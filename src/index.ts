@@ -112,35 +112,51 @@ class TrixOutputTransform extends Transform {
 }
 
 async function makeIxStream(fileStream: Readable, outIxFilename: string) {
-  initCharTables();
+  return new Promise(async (resolve, reject) => {
+    initCharTables();
 
-  const tmpdir = tmp.dirSync({
-    prefix: "jbrowse-trix-sort",
+    const tmpdir = tmp.dirSync({
+      prefix: "jbrowse-trix-sort",
+    });
+
+    const out = fs.createWriteStream(outIxFilename);
+
+    // see https://stackoverflow.com/questions/68835344/ for explainer of writer
+    const input = pump(
+      fileStream,
+      split2(),
+      new TrixInputTransform(),
+      function (err) {
+        if (err) {
+          reject(err);
+        }
+      }
+    );
+
+    const output = split2();
+    pump(output, new TrixOutputTransform(), out, function (err) {
+      if (err) {
+        reject(err);
+      }
+    });
+
+    await esort({
+      //@ts-ignore
+      input,
+      output,
+      tempDir: tmpdir.name,
+    }).asc();
+
+    // see note https://stackoverflow.com/questions/37837132/
+    // "Note for others: the finish event only triggers if the caller handles the
+    // stream properly. If not (e.g. AWS SDK S3 uploads) then you can use the
+    // close event instead, to avoid the await sitting there forever."
+    out.on("close", resolve);
   });
-
-  const out = fs.createWriteStream(outIxFilename);
-
-  // see https://stackoverflow.com/questions/68835344/ for explainer of writer
-  const r = split2();
-  pump(r, new TrixOutputTransform(), out);
-  await esort({
-    //@ts-ignore
-    input: pump(fileStream, split2(), new TrixInputTransform()),
-    //@ts-ignore
-    output: r,
-    tempDir: tmpdir.name,
-  }).asc();
-
-  // see note https://stackoverflow.com/questions/37837132/
-  // "Note for others: the finish event only triggers if the caller handles the
-  // stream properly. If not (e.g. AWS SDK S3 uploads) then you can use the
-  // close event instead, to avoid the await sitting there forever."
-  await new Promise((resolve) => out.on("close", resolve));
 }
 
 async function makeIx(inFile: string, outIndex: string) {
-  const fileStream = fs.createReadStream(inFile);
-  return makeIxStream(fileStream, outIndex);
+  return makeIxStream(fs.createReadStream(inFile), outIndex);
 }
 
 function getPrefix(word: string) {
