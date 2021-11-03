@@ -151,7 +151,7 @@ async function makeIxStream(fileStream: Readable, outIxFilename: string) {
     // "Note for others: the finish event only triggers if the caller handles the
     // stream properly. If not (e.g. AWS SDK S3 uploads) then you can use the
     // close event instead, to avoid the await sitting there forever."
-    out.on("finish", resolve);
+    out.on("close", resolve);
   });
 }
 
