@@ -1,3 +1,7 @@
+# v1.0.18
+
+- Add better error handling on stream
+
 # v1.0.17
 
 - Fix issue where nulls appear in stream on older node versions, but are
