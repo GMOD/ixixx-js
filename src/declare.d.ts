@@ -1,1 +1,1 @@
-declare module "external-sort";
+declare module 'external-sort'

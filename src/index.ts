@@ -1,17 +1,17 @@
-import { promisify } from "util";
-import { finished, Readable, Transform } from "stream";
-import { once } from "events";
+import { promisify } from 'util'
+import { finished, Readable, Transform } from 'stream'
+import { once } from 'events'
 
-import pump from "pump";
-import split2 from "split2";
-import fs from "fs";
-import readline from "readline";
-import tmp from "tmp";
-import esort from "external-sorting";
+import pump from 'pump'
+import split2 from 'split2'
+import fs from 'fs'
+import readline from 'readline'
+import tmp from 'tmp'
+import esort from 'external-sorting'
 
-tmp.setGracefulCleanup();
+tmp.setGracefulCleanup()
 
-const streamFinished = promisify(finished); // (A)
+const streamFinished = promisify(finished) // (A)
 
 // this file (ixixx.ts) is a translation of ixIxx.c from ucscGenomeBrowser/kent
 // the license of that file is reproduced below
@@ -39,149 +39,148 @@ const streamFinished = promisify(finished); // (A)
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-const prefixSize = 5;
-let binSize = 64 * 1024;
+const prefixSize = 5
+let binSize = 64 * 1024
 
 // Characters that may be part of a word
-const wordMiddleChars = [] as boolean[];
-const wordBeginChars = [] as boolean[];
+const wordMiddleChars = [] as boolean[]
+const wordBeginChars = [] as boolean[]
 
 function isalpha(c: string) {
-  return (c >= "a" && c <= "z") || (c >= "A" && c <= "Z");
+  return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
 }
 
 function isdigit(c: string) {
-  return c >= "0" && c <= "9";
+  return c >= '0' && c <= '9'
 }
 
 function isalnum(c: string) {
-  return isalpha(c) || isdigit(c);
+  return isalpha(c) || isdigit(c)
 }
 
 function initCharTables() {
   for (let c = 0; c < 256; ++c) {
     if (isalnum(String.fromCharCode(c))) {
-      wordBeginChars[c] = wordMiddleChars[c] = true;
+      wordBeginChars[c] = wordMiddleChars[c] = true
     }
   }
-  wordBeginChars["_".charCodeAt(0)] = wordMiddleChars["_".charCodeAt(0)] = true;
-  wordMiddleChars[".".charCodeAt(0)] = true;
-  wordMiddleChars["-".charCodeAt(0)] = true;
+  wordBeginChars['_'.charCodeAt(0)] = wordMiddleChars['_'.charCodeAt(0)] = true
+  wordMiddleChars['.'.charCodeAt(0)] = true
+  wordMiddleChars['-'.charCodeAt(0)] = true
 }
 
 class TrixInputTransform extends Transform {
   _transform(chunk: Buffer, encoding: any, done: Function) {
-    const [id, ...words] = chunk.toString().split(/\s+/);
+    const [id, ...words] = chunk.toString().split(/\s+/)
 
-    this.push(words.map((word) => `${word.toLowerCase()} ${id}\n`).join(""));
-    done();
+    this.push(words.map(word => `${word.toLowerCase()} ${id}\n`).join(''))
+    done()
   }
 }
 
+function elt(buff: string[], current: string) {
+  return `${current} ${buff.map((elt, idx) => `${elt},${idx + 1}`).join(' ')}\n`
+}
 class TrixOutputTransform extends Transform {
-  buff = [] as string[];
-  current = "";
+  buff = [] as string[]
+  current = ''
   _transform(chunk: Buffer, encoding: any, done: Function) {
     // weird: need to strip nulls from string, xref
     // https://github.com/GMOD/jbrowse-components/pull/2451
-    let [id, data] = chunk.toString().replace(/\0/g, "").split(" ");
+    let [id, data] = chunk.toString().replace(/\0/g, '').split(' ')
     if (this.current !== id) {
       if (this.buff.length) {
-        this.push(
-          `${this.current} ${this.buff
-            .map((elt, idx) => `${elt},${idx + 1}`)
-            .join(" ")}\n`
-        );
-        this.buff = [];
+        this.push(elt(this.buff, this.current))
+        this.buff = []
       }
-      this.current = id;
+      this.current = id
     }
-    this.buff.push(data);
-    done();
+    this.buff.push(data)
+    done()
   }
   _flush(done: Function) {
     if (this.buff.length) {
-      this.push(
-        `${this.current} ${this.buff
-          .map((elt, idx) => `${elt},${idx + 1}`)
-          .join(" ")}\n`
-      );
+      this.push(elt(this.buff, this.current))
     }
-    done();
+    done()
   }
 }
 
 async function makeIxStream(fileStream: Readable, outIxFilename: string) {
   return new Promise(async (resolve, reject) => {
-    initCharTables();
+    initCharTables()
 
     const tmpdir = tmp.dirSync({
-      prefix: "jbrowse-trix-sort",
-    });
+      prefix: 'jbrowse-trix-sort',
+    })
 
-    const out = fs.createWriteStream(outIxFilename);
+    const out = fs.createWriteStream(outIxFilename)
 
-    // see https://stackoverflow.com/questions/68835344/ for explainer of writer
+    // see https://stackoverflow.com/questions/68835344/ for explainer of
+    // writer
     const input = pump(
       fileStream,
       split2(),
       new TrixInputTransform(),
       function (err) {
         if (err) {
-          reject(err);
+          reject(err)
         }
-      }
-    );
+      },
+    )
 
-    const output = split2();
+    const output = split2()
     pump(output, new TrixOutputTransform(), out, function (err) {
       if (err) {
-        reject(err);
+        reject(err)
       }
-    });
+    })
 
     await esort({
       //@ts-ignore
       input,
       output,
       tempDir: tmpdir.name,
-    }).asc();
+    }).asc()
+
+    resolve(true)
 
     // see note https://stackoverflow.com/questions/37837132/
-    // "Note for others: the finish event only triggers if the caller handles the
-    // stream properly. If not (e.g. AWS SDK S3 uploads) then you can use the
-    // close event instead, to avoid the await sitting there forever."
-    out.on("close", resolve);
-  });
+    //
+    // "Note for others: the finish event only triggers if the caller handles
+    // the stream properly. If not (e.g. AWS SDK S3 uploads) then you can use
+    // the close event instead, to avoid the await sitting there forever."
+    // out.on("close", resolve);
+  })
 }
 
 async function makeIx(inFile: string, outIndex: string) {
-  return makeIxStream(fs.createReadStream(inFile), outIndex);
+  return makeIxStream(fs.createReadStream(inFile), outIndex)
 }
 
 function getPrefix(word: string) {
-  return word.slice(0, prefixSize).padEnd(5, " ");
+  return word.slice(0, prefixSize).padEnd(5, ' ')
 }
 
 async function makeIxx(inIx: string, outIxx: string) {
-  const out = fs.createWriteStream(outIxx);
+  const out = fs.createWriteStream(outIxx)
   try {
-    const fileStream = fs.createReadStream(inIx);
+    const fileStream = fs.createReadStream(inIx)
     const rl = readline.createInterface({
       input: fileStream,
-    });
+    })
 
-    let lastPrefix;
-    let writtenPrefix;
-    let writtenPos = -binSize;
-    let startPrefixPos = 0;
-    let bytes = 0;
+    let lastPrefix
+    let writtenPrefix
+    let writtenPos = -binSize
+    let startPrefixPos = 0
+    let bytes = 0
 
     for await (const line of rl) {
-      const [word] = line.split(/\s/);
-      const curPrefix = getPrefix(word);
+      const [word] = line.split(/\s/)
+      const curPrefix = getPrefix(word)
       if (curPrefix !== lastPrefix) {
-        startPrefixPos = bytes;
+        startPrefixPos = bytes
       }
 
       if (bytes - writtenPos >= binSize && curPrefix !== writtenPrefix) {
@@ -189,36 +188,36 @@ async function makeIxx(inIx: string, outIxx: string) {
           `${curPrefix}${startPrefixPos
             .toString(16)
             .toUpperCase()
-            .padStart(10, "0")}\n`
-        );
+            .padStart(10, '0')}\n`,
+        )
 
         // Handle backpressure
         // ref https://nodesource.com/blog/understanding-streams-in-nodejs/
         if (!res) {
-          await once(out, "drain");
+          await once(out, 'drain')
         }
-        writtenPos = bytes;
-        writtenPrefix = curPrefix;
+        writtenPos = bytes
+        writtenPrefix = curPrefix
       }
-      lastPrefix = curPrefix;
-      bytes += line.length + 1;
+      lastPrefix = curPrefix
+      bytes += line.length + 1
     }
   } finally {
-    out.end();
-    await streamFinished(out);
+    out.end()
+    await streamFinished(out)
   }
 }
 
 export async function ixIxx(inText: string, outIx: string, outIxx: string) {
-  await makeIx(inText, outIx);
-  await makeIxx(outIx, outIxx);
+  await makeIx(inText, outIx)
+  await makeIxx(outIx, outIxx)
 }
 
 export async function ixIxxStream(
   stream: Readable,
   outIx: string,
-  outIxx: string
+  outIxx: string,
 ) {
-  await makeIxStream(stream, outIx);
-  await makeIxx(outIx, outIxx);
+  await makeIxStream(stream, outIx)
+  await makeIxx(outIx, outIxx)
 }
