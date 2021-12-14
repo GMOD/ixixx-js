@@ -134,7 +134,6 @@ async function makeIxStream(fileStream: Readable, outIxFilename: string) {
     })
 
     await esort({
-      //@ts-ignore
       input,
       output,
       tempDir,
