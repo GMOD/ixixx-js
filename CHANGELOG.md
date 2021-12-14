@@ -1,3 +1,8 @@
+# v1.0.19
+
+- Fix flaky error from external-sorting module sometimes failing
+- Use pipeline instead of pump
+
 # v1.0.18
 
 - Add better error handling on stream
