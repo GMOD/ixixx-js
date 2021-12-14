@@ -8,6 +8,8 @@ import readline from 'readline'
 import tmp from 'tmp'
 import esort from 'external-sorting'
 
+tmp.setGracefulCleanup()
+
 const streamFinished = promisify(finished) // (A)
 
 // this file (ixixx.ts) is a translation of ixIxx.c from ucscGenomeBrowser/kent
