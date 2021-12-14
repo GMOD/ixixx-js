@@ -1176,10 +1176,10 @@ expect@^27.0.6:
     jest-message-util "^27.0.6"
     jest-regex-util "^27.0.6"
 
-external-sorting@^1.2.0:
-  version "1.2.0"
-  resolved "https://registry.yarnpkg.com/external-sorting/-/external-sorting-1.2.0.tgz#e2f492be8caf171c0f5fcd5831b565bcd2117a46"
-  integrity sha512-VJ61/dKifQd2wmEPi3SeMnYTjCbeysPcAxfGpQzIbC2mEdgaNBhCWw+lM4Km8sEzYkOToxLT7XV80hdM1UykoQ==
+external-sorting@^1.2.1:
+  version "1.2.1"
+  resolved "https://registry.yarnpkg.com/external-sorting/-/external-sorting-1.2.1.tgz#ec4f6b66b24e1ffa6562b854c795cba6c3707a2e"
+  integrity sha512-W9BTnAiXJ623dGacKLXPcCA962QK6mckm/wdA4Dks2lT7dbehWnveCY5SXQnRGyoND7k5ool5htljgrY4xMgJg==
   dependencies:
     fast-sort "^2.0.1"
 

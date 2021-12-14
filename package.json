@@ -32,7 +32,7 @@
     "access": "public"
   },
   "dependencies": {
-    "external-sorting": "^1.2.0",
+    "external-sorting": "^1.2.1",
     "split2": "^4.1.0",
     "tempy": "^1.0.0"
   }
