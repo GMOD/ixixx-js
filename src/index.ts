@@ -5,7 +5,7 @@ import { once } from 'events'
 import split2 from 'split2'
 import fs from 'fs'
 import readline from 'readline'
-import tempy from 'tempy'
+import tmp from 'tmp'
 import esort from 'external-sorting'
 
 const streamFinished = promisify(finished) // (A)
@@ -107,9 +107,10 @@ async function makeIxStream(fileStream: Readable, outIxFilename: string) {
   return new Promise(async (resolve, reject) => {
     initCharTables()
 
-    const tempDir = tempy.directory({
+    const dir = tmp.dirSync({
       prefix: 'jbrowse-trix-sort',
     })
+    const tempDir = dir.name
 
     const out = fs.createWriteStream(outIxFilename)
 
