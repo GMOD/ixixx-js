@@ -38,7 +38,6 @@ const streamFinished = promisify(finished) // (A)
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-const prefixSize = 5
 let binSize = 64 * 1024
 
 // Characters that may be part of a word
@@ -150,11 +149,11 @@ async function makeIx(inFile: string, outIndex: string) {
   return makeIxStream(fs.createReadStream(inFile), outIndex)
 }
 
-function getPrefix(word: string) {
-  return word.slice(0, prefixSize).padEnd(5, ' ')
+function getPrefix(word: string, prefixSize: number) {
+  return word.slice(0, prefixSize).padEnd(prefixSize, ' ')
 }
 
-async function makeIxx(inIx: string, outIxx: string) {
+async function makeIxx(inIx: string, outIxx: string, prefixSize = 5) {
   const out = fs.createWriteStream(outIxx)
   try {
     const fileStream = fs.createReadStream(inIx)
@@ -170,7 +169,7 @@ async function makeIxx(inIx: string, outIxx: string) {
 
     for await (const line of rl) {
       const [word] = line.split(/\s/)
-      const curPrefix = getPrefix(word)
+      const curPrefix = getPrefix(word, prefixSize)
       if (curPrefix !== lastPrefix) {
         startPrefixPos = bytes
       }
@@ -200,16 +199,22 @@ async function makeIxx(inIx: string, outIxx: string) {
   }
 }
 
-export async function ixIxx(inText: string, outIx: string, outIxx: string) {
+export async function ixIxx(
+  inText: string,
+  outIx: string,
+  outIxx: string,
+  prefixSize = 5,
+) {
   await makeIx(inText, outIx)
-  await makeIxx(outIx, outIxx)
+  await makeIxx(outIx, outIxx, prefixSize)
 }
 
 export async function ixIxxStream(
   stream: Readable,
   outIx: string,
   outIxx: string,
+  prefixSize = 5,
 ) {
   await makeIxStream(stream, outIx)
-  await makeIxx(outIx, outIxx)
+  await makeIxx(outIx, outIxx, prefixSize)
 }
