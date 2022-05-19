@@ -153,7 +153,7 @@ function getPrefix(word: string, prefixSize: number) {
   return word.slice(0, prefixSize).padEnd(prefixSize, ' ')
 }
 
-async function makeIxx(inIx: string, outIxx: string, prefixSize = 5) {
+export async function makeIxx(inIx: string, outIxx: string, prefixSize = 5) {
   const out = fs.createWriteStream(outIxx)
   try {
     const fileStream = fs.createReadStream(inIx)

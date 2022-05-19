@@ -1,3 +1,7 @@
+# v1.0.21
+
+- Export the makeIxx function
+
 # v1.0.20
 
 - Add configurable prefixSize paramter to ixIxx and ixIxxStream, can be used if
