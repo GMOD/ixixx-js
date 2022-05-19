@@ -5,7 +5,9 @@
   "repository": "GMOD/ixixx-js",
   "author": "Colin",
   "files": [
-    "dist"
+    "dist",
+    "esm",
+    "src"
   ],
   "license": "MIT",
   "devDependencies": {
@@ -20,7 +22,9 @@
   },
   "scripts": {
     "prebuild": "rimraf dist",
-    "build": "tsc",
+    "build:esm": "tsc --target es2018 --outDir esm",
+    "build:es5": "tsc --target es5 --outDir dist",
+    "build": "npm run build:esm && npm run build:es5",
     "test": "jest",
     "preversion": "npm run build",
     "postversion": "git push --follow-tags"
