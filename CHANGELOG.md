@@ -1,3 +1,10 @@
+# v2.0.0
+
+- Automatically optimize prefix size. Previously this was manually provided or
+  defaulted to 5. We now automatically try to calculate this if no prefix size
+  is provided. This will try to make each bin from the ixx index approximately
+  64kb
+
 # v1.0.21
 
 - Export the makeIxx function
