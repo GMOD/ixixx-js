@@ -230,8 +230,6 @@ export async function makeIxx(
     let startPrefixPos = 0
     let bytes = 0
 
-    let lastBin = 0
-
     for await (const line of rl) {
       const [word] = line.split(/\s/)
       const curPrefix = getPrefix(word, prefixSize)
@@ -246,7 +244,6 @@ export async function makeIxx(
             .toUpperCase()
             .padStart(10, '0')}\n`,
         )
-        lastBin = startPrefixPos
 
         // Handle backpressure
         // ref https://nodesource.com/blog/understanding-streams-in-nodejs/
