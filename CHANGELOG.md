@@ -1,3 +1,8 @@
+# v2.0.1
+
+- Use commonjs + es2015 instead of relying on es5 setting to make commonjs
+  modules
+
 # v2.0.0
 
 - Automatically optimize prefix size. Previously this was manually provided or
