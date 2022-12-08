@@ -12,7 +12,7 @@ tmp.setGracefulCleanup()
 
 const streamFinished = promisify(finished) // (A)
 
-// this file (ixixx.ts) is a translation of ixIxx.c from ucscGenomeBrowser/kent
+// this file (index.ts) is a translation of ixIxx.c from ucscGenomeBrowser/kent
 // the license of that file is reproduced below
 
 /*
@@ -38,7 +38,7 @@ const streamFinished = promisify(finished) // (A)
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-let binSize = 64 * 1024
+let binSize = 64 * 1024 //64kb
 
 // Characters that may be part of a word
 const wordMiddleChars = [] as boolean[]
@@ -59,7 +59,8 @@ function isalnum(c: string) {
 function initCharTables() {
   for (let c = 0; c < 256; ++c) {
     if (isalnum(String.fromCharCode(c))) {
-      wordBeginChars[c] = wordMiddleChars[c] = true
+      wordBeginChars[c] = true
+      wordMiddleChars[c] = true
     }
   }
   wordBeginChars['_'.charCodeAt(0)] = wordMiddleChars['_'.charCodeAt(0)] = true
@@ -68,7 +69,7 @@ function initCharTables() {
 }
 
 class TrixInputTransform extends Transform {
-  _transform(chunk: Buffer, encoding: any, done: Function) {
+  _transform(chunk: Buffer, _encoding: any, done: () => void) {
     const [id, ...words] = chunk.toString().split(/\s+/)
 
     this.push(words.map(word => `${word.toLowerCase()} ${id}\n`).join(''))
@@ -79,10 +80,11 @@ class TrixInputTransform extends Transform {
 function elt(buff: string[], current: string) {
   return `${current} ${buff.map((elt, idx) => `${elt},${idx + 1}`).join(' ')}\n`
 }
+
 class TrixOutputTransform extends Transform {
   buff = [] as string[]
   current = ''
-  _transform(chunk: Buffer, encoding: any, done: Function) {
+  _transform(chunk: Buffer, _encoding: any, done: () => void) {
     // weird: need to strip nulls from string, xref
     // https://github.com/GMOD/jbrowse-components/pull/2451
     let [id, data] = chunk.toString().replace(/\0/g, '').split(' ')
@@ -96,7 +98,7 @@ class TrixOutputTransform extends Transform {
     this.buff.push(data)
     done()
   }
-  _flush(done: Function) {
+  _flush(done: () => void) {
     if (this.buff.length) {
       this.push(elt(this.buff, this.current))
     }
@@ -155,6 +157,8 @@ function getPrefix(word: string, prefixSize: number) {
 
 export async function makeIxx(inIx: string, outIxx: string, prefixSize = 5) {
   const out = fs.createWriteStream(outIxx)
+  let binSizeTotal = 0
+  let binCount = 0
   try {
     const fileStream = fs.createReadStream(inIx)
     const rl = readline.createInterface({
@@ -166,6 +170,8 @@ export async function makeIxx(inIx: string, outIxx: string, prefixSize = 5) {
     let writtenPos = -binSize
     let startPrefixPos = 0
     let bytes = 0
+
+    let lastBin = 0
 
     for await (const line of rl) {
       const [word] = line.split(/\s/)
@@ -181,6 +187,10 @@ export async function makeIxx(inIx: string, outIxx: string, prefixSize = 5) {
             .toUpperCase()
             .padStart(10, '0')}\n`,
         )
+        const binSize = startPrefixPos - lastBin
+        binSizeTotal += binSize
+        binCount++
+        lastBin = startPrefixPos
 
         // Handle backpressure
         // ref https://nodesource.com/blog/understanding-streams-in-nodejs/
@@ -197,6 +207,8 @@ export async function makeIxx(inIx: string, outIxx: string, prefixSize = 5) {
     out.end()
     await streamFinished(out)
   }
+  console.error(binSizeTotal / binCount)
+  return { avgBinSize: binSizeTotal / binCount }
 }
 
 export async function ixIxx(
