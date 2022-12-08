@@ -155,10 +155,81 @@ function getPrefix(word: string, prefixSize: number) {
   return word.slice(0, prefixSize).padEnd(prefixSize, ' ')
 }
 
-export async function makeIxx(inIx: string, outIxx: string, prefixSize = 5) {
+export async function optimizePrefixSize(inIx: string) {
+  let binSizeTotal = 0
+  let binCount = 0
+  let prefixSize = 6
+  for (; prefixSize < 40; prefixSize++) {
+    const fileStream = fs.createReadStream(inIx)
+    const rl = readline.createInterface({
+      input: fileStream,
+    })
+
+    let lastPrefix
+    let writtenPrefix
+    let writtenPos = -binSize
+    let startPrefixPos = 0
+    let bytes = 0
+
+    let lastBin = 0
+    let maxBinSize = 0
+
+    for await (const line of rl) {
+      const [word] = line.split(/\s/)
+      const curPrefix = getPrefix(word, prefixSize)
+      if (curPrefix !== lastPrefix) {
+        startPrefixPos = bytes
+      }
+
+      if (bytes - writtenPos >= binSize && curPrefix !== writtenPrefix) {
+        const binSize = startPrefixPos - lastBin
+        binSizeTotal += binSize
+        maxBinSize = Math.max(binSize, maxBinSize)
+        binCount++
+        lastBin = startPrefixPos
+
+        writtenPos = bytes
+        writtenPrefix = curPrefix
+      }
+      lastPrefix = curPrefix
+      bytes += line.length + 1
+    }
+    const avgBinSize = binSizeTotal / binCount
+    // some heuristics. note: binSizeTotal===0 means everything was lumped into
+    // one bin
+    if (
+      binSizeTotal === 0 ||
+      avgBinSize > 3 * binSize ||
+      maxBinSize > 10 * binSize
+    ) {
+      console.log(
+        'Continuing',
+        maxBinSize,
+        avgBinSize,
+        binSizeTotal,
+        prefixSize,
+      )
+      continue
+    } else {
+      console.log('Found', maxBinSize, avgBinSize, binSizeTotal, prefixSize)
+      break
+    }
+  }
+  return prefixSize
+}
+
+export async function makeIxx(
+  inIx: string,
+  outIxx: string,
+  prefixSizeParam?: number,
+) {
   const out = fs.createWriteStream(outIxx)
   let binSizeTotal = 0
   let binCount = 0
+  console.log('t1', prefixSizeParam)
+  const prefixSize = prefixSizeParam ?? (await optimizePrefixSize(inIx))
+  console.log('t2', prefixSize)
+
   try {
     const fileStream = fs.createReadStream(inIx)
     const rl = readline.createInterface({
@@ -215,7 +286,7 @@ export async function ixIxx(
   inText: string,
   outIx: string,
   outIxx: string,
-  prefixSize = 5,
+  prefixSize?: number,
 ) {
   await makeIx(inText, outIx)
   await makeIxx(outIx, outIxx, prefixSize)
@@ -225,7 +296,7 @@ export async function ixIxxStream(
   stream: Readable,
   outIx: string,
   outIxx: string,
-  prefixSize = 5,
+  prefixSize?: number,
 ) {
   await makeIxStream(stream, outIx)
   await makeIxx(outIx, outIxx, prefixSize)
