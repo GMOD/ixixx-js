@@ -158,7 +158,7 @@ function getPrefix(word: string, prefixSize: number) {
 export async function optimizePrefixSize(inIx: string) {
   let binSizeTotal = 0
   let binCount = 0
-  let prefixSize = 6
+  let prefixSize = 5
   for (; prefixSize < 40; prefixSize++) {
     const fileStream = fs.createReadStream(inIx)
     const rl = readline.createInterface({
@@ -198,20 +198,12 @@ export async function optimizePrefixSize(inIx: string) {
     // some heuristics. note: binSizeTotal===0 means everything was lumped into
     // one bin
     if (
-      binSizeTotal === 0 ||
+      (binSizeTotal === 0 && bytes > binSize) ||
       avgBinSize > 3 * binSize ||
       maxBinSize > 10 * binSize
     ) {
-      console.log(
-        'Continuing',
-        maxBinSize,
-        avgBinSize,
-        binSizeTotal,
-        prefixSize,
-      )
       continue
     } else {
-      console.log('Found', maxBinSize, avgBinSize, binSizeTotal, prefixSize)
       break
     }
   }
@@ -224,11 +216,7 @@ export async function makeIxx(
   prefixSizeParam?: number,
 ) {
   const out = fs.createWriteStream(outIxx)
-  let binSizeTotal = 0
-  let binCount = 0
-  console.log('t1', prefixSizeParam)
   const prefixSize = prefixSizeParam ?? (await optimizePrefixSize(inIx))
-  console.log('t2', prefixSize)
 
   try {
     const fileStream = fs.createReadStream(inIx)
@@ -258,9 +246,6 @@ export async function makeIxx(
             .toUpperCase()
             .padStart(10, '0')}\n`,
         )
-        const binSize = startPrefixPos - lastBin
-        binSizeTotal += binSize
-        binCount++
         lastBin = startPrefixPos
 
         // Handle backpressure
@@ -278,8 +263,6 @@ export async function makeIxx(
     out.end()
     await streamFinished(out)
   }
-  console.error(binSizeTotal / binCount)
-  return { avgBinSize: binSizeTotal / binCount }
 }
 
 export async function ixIxx(
