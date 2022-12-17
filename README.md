@@ -1,4 +1,4 @@
-[![Build Status](https://img.shields.io/github/workflow/status/GMOD/ixixx-js/Push/master?logo=github&style=for-the-badge)](https://github.com/GMOD/ixixx-js/actions?query=branch%3Amaster+workflow%3APush+)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/GMOD/ixixx-js/push.yml?branch=master&logo=github&style=for-the-badge)](https://github.com/GMOD/ixixx-js/actions?query=branch%3Amaster+workflow%3APush+)
 
 # ixixx-js
 
