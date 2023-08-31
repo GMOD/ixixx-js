@@ -5,10 +5,7 @@ import { once } from 'events'
 import split2 from 'split2'
 import fs from 'fs'
 import readline from 'readline'
-import tmp from 'tmp'
 import { spawn } from 'child_process'
-
-tmp.setGracefulCleanup()
 
 const streamFinished = promisify(finished) // (A)
 
