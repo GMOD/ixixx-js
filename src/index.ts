@@ -38,7 +38,7 @@ const streamFinished = promisify(finished) // (A)
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-let binSize = 64 * 1024 //64kb
+const binSize = 64 * 1024 //64kb
 
 // Characters that may be part of a word
 const wordMiddleChars = [] as boolean[]
@@ -87,7 +87,7 @@ class TrixOutputTransform extends Transform {
   _transform(chunk: Buffer, _encoding: any, done: () => void) {
     // weird: need to strip nulls from string, xref
     // https://github.com/GMOD/jbrowse-components/pull/2451
-    let [id, data] = chunk.toString().replace(/\0/g, '').split(' ')
+    const [id, data] = chunk.toString().replace(/\0/g, '').split(' ')
     if (this.current !== id) {
       if (this.buff.length) {
         this.push(elt(this.buff, this.current))
