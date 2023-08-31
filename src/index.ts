@@ -129,7 +129,10 @@ async function makeIxStream(fileStream: Readable, outIxFilename: string) {
       }
     })
 
-    const sort = spawn('sort', ['-k1,1'])
+    // override locale to C, but keep other env vars
+    const sort = spawn('sort', ['-k1,1'], {
+      env: { ...process.env, LC_ALL: 'C' },
+    })
 
     input.pipe(sort.stdin)
     sort.stdout.on('data', function (data: string) {
