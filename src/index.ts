@@ -6,7 +6,7 @@ import split2 from 'split2'
 import fs from 'fs'
 import readline from 'readline'
 import tmp from 'tmp'
-import esort from 'external-sorting'
+import { spawn } from 'child_process'
 
 tmp.setGracefulCleanup()
 
@@ -107,13 +107,8 @@ class TrixOutputTransform extends Transform {
 }
 
 async function makeIxStream(fileStream: Readable, outIxFilename: string) {
-  return new Promise(async (resolve, reject) => {
+  return new Promise((resolve, reject) => {
     initCharTables()
-
-    const dir = tmp.dirSync({
-      prefix: 'jbrowse-trix-sort',
-    })
-    const tempDir = dir.name
 
     const out = fs.createWriteStream(outIxFilename)
 
@@ -131,19 +126,29 @@ async function makeIxStream(fileStream: Readable, outIxFilename: string) {
     )
 
     const output = split2()
-    pipeline(output, new TrixOutputTransform(), out, function (err) {
+    pipeline(output, new TrixOutputTransform(), out, err => {
       if (err) {
         reject(err)
       }
     })
 
-    await esort({
-      input,
-      output,
-      tempDir,
-    }).asc()
+    const sort = spawn('sort', ['-k1,1'])
 
-    resolve(true)
+    input.pipe(sort.stdin)
+    sort.stdout.on('data', function (data: string) {
+      output.write(data)
+    })
+
+    sort.on('exit', function (code) {
+      if (code) {
+        // handle error
+        reject(code)
+      } else {
+        output.end()
+
+        resolve(true)
+      }
+    })
   })
 }
 
