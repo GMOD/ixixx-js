@@ -5,10 +5,7 @@ import { once } from 'events'
 import split2 from 'split2'
 import fs from 'fs'
 import readline from 'readline'
-import tmp from 'tmp'
-import esort from 'external-sorting'
-
-tmp.setGracefulCleanup()
+import { spawn } from 'child_process'
 
 const streamFinished = promisify(finished) // (A)
 
@@ -38,7 +35,7 @@ const streamFinished = promisify(finished) // (A)
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-let binSize = 64 * 1024 //64kb
+const binSize = 64 * 1024 //64kb
 
 // Characters that may be part of a word
 const wordMiddleChars = [] as boolean[]
@@ -69,7 +66,7 @@ function initCharTables() {
 }
 
 class TrixInputTransform extends Transform {
-  _transform(chunk: Buffer, _encoding: any, done: () => void) {
+  _transform(chunk: Buffer, _encoding: unknown, done: () => void) {
     const [id, ...words] = chunk.toString().split(/\s+/)
 
     this.push(words.map(word => `${word.toLowerCase()} ${id}\n`).join(''))
@@ -84,10 +81,10 @@ function elt(buff: string[], current: string) {
 class TrixOutputTransform extends Transform {
   buff = [] as string[]
   current = ''
-  _transform(chunk: Buffer, _encoding: any, done: () => void) {
+  _transform(chunk: Buffer, _encoding: unknown, done: () => void) {
     // weird: need to strip nulls from string, xref
     // https://github.com/GMOD/jbrowse-components/pull/2451
-    let [id, data] = chunk.toString().replace(/\0/g, '').split(' ')
+    const [id, data] = chunk.toString().replace(/\0/g, '').split(' ')
     if (this.current !== id) {
       if (this.buff.length) {
         this.push(elt(this.buff, this.current))
@@ -107,13 +104,8 @@ class TrixOutputTransform extends Transform {
 }
 
 async function makeIxStream(fileStream: Readable, outIxFilename: string) {
-  return new Promise(async (resolve, reject) => {
+  return new Promise((resolve, reject) => {
     initCharTables()
-
-    const dir = tmp.dirSync({
-      prefix: 'jbrowse-trix-sort',
-    })
-    const tempDir = dir.name
 
     const out = fs.createWriteStream(outIxFilename)
 
@@ -131,19 +123,32 @@ async function makeIxStream(fileStream: Readable, outIxFilename: string) {
     )
 
     const output = split2()
-    pipeline(output, new TrixOutputTransform(), out, function (err) {
+    pipeline(output, new TrixOutputTransform(), out, err => {
       if (err) {
         reject(err)
       }
     })
 
-    await esort({
-      input,
-      output,
-      tempDir,
-    }).asc()
+    // override locale to C, but keep other env vars
+    const sort = spawn('sort', ['-k1,1'], {
+      env: { ...process.env, LC_ALL: 'C' },
+    })
 
-    resolve(true)
+    input.pipe(sort.stdin)
+    sort.stdout.on('data', function (data: string) {
+      output.write(data)
+    })
+
+    sort.on('exit', function (code) {
+      if (code) {
+        // handle error
+        reject(code)
+      } else {
+        output.end()
+
+        resolve(true)
+      }
+    })
   })
 }
 

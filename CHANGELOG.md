@@ -16,7 +16,7 @@
 
 # v1.0.20
 
-- Add configurable prefixSize paramter to ixIxx and ixIxxStream, can be used if
+- Add configurable prefixSize parameter to ixIxx and ixIxxStream, can be used if
   many of the features you are indexing have similar ID prefixes
 
 # v1.0.19

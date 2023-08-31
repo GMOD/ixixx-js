@@ -7,6 +7,6 @@ if (!file) {
   console.log('usage: ixixx file.txt [out.ix] [out.ixx]')
   process.exit()
 }
-;(async () => {
+(async () => {
   await ixIxx(file, out1, out2)
 })()
