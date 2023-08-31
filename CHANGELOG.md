@@ -1,3 +1,7 @@
+# v2.1.0
+
+- Use GNU sort instead of javascript NPM external-sort module, this should be significantly faster for the sort step and may help with potential memory leak issues
+
 # v2.0.1
 
 - Use commonjs + es2015 instead of relying on es5 setting to make commonjs
