@@ -69,7 +69,7 @@ function initCharTables() {
 }
 
 class TrixInputTransform extends Transform {
-  _transform(chunk: Buffer, _encoding: any, done: () => void) {
+  _transform(chunk: Buffer, _encoding: unknown, done: () => void) {
     const [id, ...words] = chunk.toString().split(/\s+/)
 
     this.push(words.map(word => `${word.toLowerCase()} ${id}\n`).join(''))
@@ -84,7 +84,7 @@ function elt(buff: string[], current: string) {
 class TrixOutputTransform extends Transform {
   buff = [] as string[]
   current = ''
-  _transform(chunk: Buffer, _encoding: any, done: () => void) {
+  _transform(chunk: Buffer, _encoding: unknown, done: () => void) {
     // weird: need to strip nulls from string, xref
     // https://github.com/GMOD/jbrowse-components/pull/2451
     const [id, data] = chunk.toString().replace(/\0/g, '').split(' ')
