@@ -1,3 +1,7 @@
+# v2.1.1
+
+- More accurately determine end of stream
+
 # v2.1.0
 
 - Use GNU sort instead of javascript NPM external-sort module, this should be significantly faster for the sort step and may help with potential memory leak issues
