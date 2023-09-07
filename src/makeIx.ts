@@ -1,4 +1,7 @@
 import { pipeline, Readable } from 'stream'
+import esort from 'external-sorting'
+import tmp from 'tmp'
+import { sync as commandExistsSync } from 'command-exists'
 
 import split2 from 'split2'
 import fs from 'fs'
@@ -64,20 +67,34 @@ export async function makeIxStream(
     })
 
     // override locale to C, but keep other env vars
-    const sort = spawn('sort', ['-k1,1'], {
-      env: { ...process.env, LC_ALL: 'C' },
-    })
+    if (commandExistsSync('sort')) {
+      const sort = spawn('sort', ['-k1,1'], {
+        env: { ...process.env, LC_ALL: 'C' },
+      })
 
-    input.pipe(sort.stdin)
-    sort.stdout.pipe(output)
-    output.on('finish', () => {
-      resolve(true)
-    })
-    output.on('error', err => {
-      if (err) {
-        reject(err)
-      }
-    })
+      input.pipe(sort.stdin)
+      sort.stdout.pipe(output)
+      output.on('finish', () => {
+        resolve(true)
+      })
+      output.on('error', err => {
+        if (err) {
+          reject(err)
+        }
+      })
+    } else {
+      const dir = tmp.dirSync({
+        prefix: 'jbrowse-trix-sort',
+      })
+      const tempDir = dir.name
+      esort({
+        input,
+        output,
+        tempDir,
+      })
+        .asc()
+        .then(resolve, reject)
+    }
   })
 }
 

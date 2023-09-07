@@ -1,3 +1,5 @@
+- Restore external-sorting pure-JS sort
+
 # v2.1.1
 
 - More accurately determine end of stream
