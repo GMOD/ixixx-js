@@ -1,3 +1,9 @@
+# v2.2.1
+
+- Use more extensive pipeline() functions to avoid listening to explicit stream signals which are tricky to understand
+
+# v2.2.0
+
 - Restore external-sorting pure-JS sort
 
 # v2.1.1
