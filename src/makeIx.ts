@@ -48,38 +48,29 @@ export async function makeIxStream(
 
     // see https://stackoverflow.com/questions/68835344/ for explainer of
     // writer
-    const input = pipeline(
-      fileStream,
-      split2(),
-      new TrixInputTransform(),
-      err => {
-        if (err) {
-          reject(err)
-        }
-      },
-    )
-
-    const output = split2()
-    pipeline(output, new TrixOutputTransform(), out, err => {
-      if (err) {
-        reject(err)
-      }
-    })
 
     // override locale to C, but keep other env vars
     if (commandExistsSync('sort')) {
       const sort = spawn('sort', ['-k1,1'], {
         env: { ...process.env, LC_ALL: 'C' },
       })
+      pipeline(
+        fileStream,
+        split2(),
+        new TrixInputTransform(),
+        sort.stdin,
+        err => {
+          if (err) {
+            reject(err)
+          }
+        },
+      )
 
-      input.pipe(sort.stdin)
-      sort.stdout.pipe(output)
-      output.on('finish', () => {
-        resolve(true)
-      })
-      output.on('error', err => {
+      pipeline(sort.stdout, split2(), new TrixOutputTransform(), out, err => {
         if (err) {
           reject(err)
+        } else {
+          resolve(true)
         }
       })
     } else {
@@ -88,8 +79,12 @@ export async function makeIxStream(
       })
       const tempDir = dir.name
       esort({
-        input,
-        output,
+        input: pipeline(fileStream, split2(), new TrixInputTransform(), err => {
+          if (err) {
+            reject(err)
+          }
+        }),
+        output: split2(),
         tempDir,
       })
         .asc()
