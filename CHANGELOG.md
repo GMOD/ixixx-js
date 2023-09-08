@@ -1,3 +1,7 @@
+# v2.2.2
+
+- Fix external-sorting piping system
+
 # v2.2.1
 
 - Use more extensive pipeline() functions to avoid listening to explicit stream signals which are tricky to understand

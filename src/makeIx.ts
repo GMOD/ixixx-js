@@ -78,13 +78,20 @@ export async function makeIxStream(
         prefix: 'jbrowse-trix-sort',
       })
       const tempDir = dir.name
+      const output = split2()
+
+      pipeline(output, new TrixOutputTransform(), out, err => {
+        if (err) {
+          reject(err)
+        }
+      })
       esort({
         input: pipeline(fileStream, split2(), new TrixInputTransform(), err => {
           if (err) {
             reject(err)
           }
         }),
-        output: split2(),
+        output,
         tempDir,
       })
         .asc()
