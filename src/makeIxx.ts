@@ -8,6 +8,8 @@ import readline from 'readline'
 import { binSize, getPrefix } from './util'
 import { optimizePrefixSize } from './optimizePrefixSize'
 
+const ADDRESS_SIZE = 10
+
 const streamFinished = promisify(finished) // (A)
 
 export async function makeIxx(
@@ -42,7 +44,7 @@ export async function makeIxx(
           `${curPrefix}${startPrefixPos
             .toString(16)
             .toUpperCase()
-            .padStart(10, '0')}\n`,
+            .padStart(ADDRESS_SIZE, '0')}\n`,
         )
 
         // Handle backpressure
