@@ -37,6 +37,9 @@ function initCharTables() {
   wordMiddleChars['-'.charCodeAt(0)] = true
 }
 
+const isWin =
+  typeof process !== 'undefined' ? process.platform === 'win32' : false
+
 export async function makeIxStream(
   fileStream: Readable,
   outIxFilename: string,
@@ -50,7 +53,7 @@ export async function makeIxStream(
     // writer
 
     // override locale to C, but keep other env vars
-    if (commandExistsSync('sort')) {
+    if (commandExistsSync('sort') && !isWin) {
       const sort = spawn('sort', ['-k1,1'], {
         env: { ...process.env, LC_ALL: 'C' },
       })
