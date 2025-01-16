@@ -1,3 +1,4 @@
+import { test, expect } from 'vitest'
 import { ixIxxStream } from '../src/'
 import tmp from 'tmp'
 import fs from 'fs'
