@@ -5,9 +5,9 @@ import { sync as commandExistsSync } from 'command-exists'
 
 import split2 from 'split2'
 import fs from 'fs'
-import { spawn } from 'child_process'
 import { TrixInputTransform } from './TrixInputTransform'
 import { TrixOutputTransform } from './TrixOutputTransform'
+import { execa } from 'execa'
 
 // Characters that may be part of a word
 const wordMiddleChars = [] as boolean[]
@@ -40,43 +40,59 @@ function initCharTables() {
 const isWin =
   typeof process !== 'undefined' ? process.platform === 'win32' : false
 
+function elt(buff: string[], current: string) {
+  return `${current} ${buff.map((elt, idx) => `${elt},${idx + 1}`).join(' ')}\n`
+}
+
 export async function makeIxStream(
   fileStream: Readable,
   outIxFilename: string,
 ) {
-  return new Promise((resolve, reject) => {
-    initCharTables()
+  initCharTables()
 
-    const out = fs.createWriteStream(outIxFilename)
+  // see https://stackoverflow.com/questions/68835344/ for explainer of
+  // writer
 
-    // see https://stackoverflow.com/questions/68835344/ for explainer of
-    // writer
-
-    // override locale to C, but keep other env vars
-    if (commandExistsSync('sort') && !isWin) {
-      const sort = spawn('sort', ['-k1,1'], {
-        env: { ...process.env, LC_ALL: 'C' },
-      })
-      pipeline(
+  // override locale to C, but keep other env vars
+  if (commandExistsSync('sort') && !isWin) {
+    let buff = [] as string[]
+    let current = ''
+    await execa('sort', ['-k1,1'], {
+      env: { ...process.env, LC_ALL: 'C' },
+      stdin: [
         fileStream,
-        split2(),
-        new TrixInputTransform(),
-        sort.stdin,
-        err => {
-          if (err) {
-            reject(err)
-          }
+        function* (line: string) {
+          const [id, ...words] = line.toString().split(/\s+/)
+          yield words.map(word => `${word.toLowerCase()} ${id}\n`).join('')
         },
-      )
-
-      pipeline(sort.stdout, split2(), new TrixOutputTransform(), out, err => {
-        if (err) {
-          reject(err)
-        } else {
-          resolve(true)
-        }
-      })
-    } else {
+      ],
+      stdout: [
+        {
+          transform: function* (line: string) {
+            // weird: need to strip nulls from string, xref
+            // https://github.com/GMOD/jbrowse-components/pull/2451
+            const [id, data] = line.replace(/\0/g, '').split(' ')
+            if (current !== id) {
+              if (buff.length) {
+                yield elt(buff, current)
+                buff = []
+              }
+              current = id
+            }
+            buff.push(data)
+          },
+          final: function* () {
+            if (buff.length) {
+              yield elt(buff, current)
+            }
+          },
+        },
+        { file: outIxFilename },
+      ],
+    })
+  } else {
+    return new Promise((resolve, reject) => {
+      const out = fs.createWriteStream(outIxFilename)
       const dir = tmp.dirSync({
         prefix: 'jbrowse-trix-sort',
       })
@@ -99,8 +115,8 @@ export async function makeIxStream(
       })
         .asc()
         .then(resolve, reject)
-    }
-  })
+    })
+  }
 }
 
 export async function makeIx(inFile: string, outIndex: string) {
