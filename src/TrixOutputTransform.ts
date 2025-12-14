@@ -1,15 +1,25 @@
 import { Transform } from 'stream'
 
 function elt(buff: string[], current: string) {
-  return `${current} ${buff.map((elt, idx) => `${elt},${idx + 1}`).join(' ')}\n`
+  let result = current
+  for (let i = 0; i < buff.length; i++) {
+    result += ` ${buff[i]},${i + 1}`
+  }
+  return result + '\n'
 }
+
 export class TrixOutputTransform extends Transform {
-  buff = [] as string[]
+  buff: string[] = []
   current = ''
+
   _transform(chunk: Buffer, _encoding: unknown, done: () => void) {
     // weird: need to strip nulls from string, xref
     // https://github.com/GMOD/jbrowse-components/pull/2451
-    const [id, data] = chunk.toString().replace(/\0/g, '').split(' ')
+    const line = chunk.toString().replace(/\0/g, '')
+    const spaceIdx = line.indexOf(' ')
+    const id = spaceIdx === -1 ? line : line.slice(0, spaceIdx)
+    const data = spaceIdx === -1 ? '' : line.slice(spaceIdx + 1)
+
     if (this.current !== id) {
       if (this.buff.length) {
         this.push(elt(this.buff, this.current))
@@ -20,6 +30,7 @@ export class TrixOutputTransform extends Transform {
     this.buff.push(data)
     done()
   }
+
   _flush(done: () => void) {
     if (this.buff.length) {
       this.push(elt(this.buff, this.current))

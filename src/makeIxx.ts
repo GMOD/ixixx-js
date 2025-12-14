@@ -33,7 +33,8 @@ export async function makeIxx(
     let bytes = 0
 
     for await (const line of rl) {
-      const [word] = line.split(/\s/)
+      const spaceIdx = line.indexOf(' ')
+      const word = spaceIdx === -1 ? line : line.slice(0, spaceIdx)
       const curPrefix = getPrefix(word, prefixSize)
       if (curPrefix !== lastPrefix) {
         startPrefixPos = bytes
