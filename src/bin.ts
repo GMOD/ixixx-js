@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { ixIxx } from './index'
+import { ixIxx } from './index.ts'
 
 const [file, out1 = 'out.ix', out2 = 'out.ixx'] = process.argv.slice(2)
 

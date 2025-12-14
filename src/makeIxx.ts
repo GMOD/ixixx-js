@@ -3,8 +3,8 @@ import { once } from 'events'
 import fs from 'fs'
 import readline from 'readline'
 
-import { binSize, getPrefix } from './util'
-import { optimizePrefixSize } from './optimizePrefixSize'
+import { binSize, getPrefix } from './util.ts'
+import { optimizePrefixSize } from './optimizePrefixSize.ts'
 
 const ADDRESS_SIZE = 10
 

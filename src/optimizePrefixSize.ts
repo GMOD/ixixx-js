@@ -1,6 +1,6 @@
 import fs from 'fs'
 import readline from 'readline'
-import { binSize, getPrefix } from './util'
+import { binSize, getPrefix } from './util.ts'
 
 interface PrefixStats {
   lastPrefix: string

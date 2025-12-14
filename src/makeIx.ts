@@ -4,9 +4,9 @@ import { sync as commandExistsSync } from 'command-exists'
 import split2 from 'split2'
 import fs from 'fs'
 import { spawn } from 'child_process'
-import { TrixInputTransform } from './TrixInputTransform'
-import { TrixOutputTransform } from './TrixOutputTransform'
-import { sortLinesExternal } from './sortLines'
+import { TrixInputTransform } from './TrixInputTransform.ts'
+import { TrixOutputTransform } from './TrixOutputTransform.ts'
+import { sortLinesExternal } from './sortLines.ts'
 
 const isWin =
   typeof process === 'undefined' ? false : process.platform === 'win32'
