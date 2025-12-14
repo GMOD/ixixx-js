@@ -1,106 +1,73 @@
-import { pipeline, Readable } from 'stream'
-import esort from 'external-sorting'
-import tmp from 'tmp'
+import { pipeline } from 'stream/promises'
+import { Readable } from 'stream'
 import { sync as commandExistsSync } from 'command-exists'
-
 import split2 from 'split2'
 import fs from 'fs'
 import { spawn } from 'child_process'
 import { TrixInputTransform } from './TrixInputTransform'
 import { TrixOutputTransform } from './TrixOutputTransform'
-
-// Characters that may be part of a word
-const wordMiddleChars = [] as boolean[]
-const wordBeginChars = [] as boolean[]
-
-function isalpha(c: string) {
-  return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
-}
-
-function isdigit(c: string) {
-  return c >= '0' && c <= '9'
-}
-
-function isalnum(c: string) {
-  return isalpha(c) || isdigit(c)
-}
-
-function initCharTables() {
-  for (let c = 0; c < 256; ++c) {
-    if (isalnum(String.fromCharCode(c))) {
-      wordBeginChars[c] = true
-      wordMiddleChars[c] = true
-    }
-  }
-  wordBeginChars['_'.charCodeAt(0)] = wordMiddleChars['_'.charCodeAt(0)] = true
-  wordMiddleChars['.'.charCodeAt(0)] = true
-  wordMiddleChars['-'.charCodeAt(0)] = true
-}
+import { sortLinesExternal } from './sortLines'
 
 const isWin =
-  typeof process !== 'undefined' ? process.platform === 'win32' : false
+  typeof process === 'undefined' ? false : process.platform === 'win32'
+
+const useExternalSort = !isWin && commandExistsSync('sort')
+
+async function makeIxWithExternalSort(
+  fileStream: Readable,
+  outIxFilename: string,
+) {
+  const out = fs.createWriteStream(outIxFilename)
+  const sort = spawn('sort', ['-k1,1'], {
+    env: { ...process.env, LC_ALL: 'C' },
+  })
+
+  sort.on('error', function onSortError(err) {
+    throw err
+  })
+
+  const inputDone = pipeline(
+    fileStream,
+    split2(),
+    new TrixInputTransform(),
+    sort.stdin,
+  )
+
+  const outputDone = pipeline(
+    sort.stdout,
+    split2(),
+    new TrixOutputTransform(),
+    out,
+  )
+
+  await Promise.all([inputDone, outputDone])
+}
+
+async function makeIxWithJsSort(fileStream: Readable, outIxFilename: string) {
+  const out = fs.createWriteStream(outIxFilename)
+
+  // Transform input
+  const transformedInput = fileStream.pipe(split2()).pipe(new TrixInputTransform())
+
+  // Sort lines using external merge sort
+  const sortedOutput = split2()
+  const sortDone = sortLinesExternal(transformedInput, sortedOutput)
+
+  // Transform sorted output and write to file
+  const writeDone = pipeline(sortedOutput, new TrixOutputTransform(), out)
+
+  await Promise.all([sortDone, writeDone])
+}
 
 export async function makeIxStream(
   fileStream: Readable,
   outIxFilename: string,
 ) {
-  return new Promise((resolve, reject) => {
-    initCharTables()
-
-    const out = fs.createWriteStream(outIxFilename)
-
-    // see https://stackoverflow.com/questions/68835344/ for explainer of
-    // writer
-
-    // override locale to C, but keep other env vars
-    if (commandExistsSync('sort') && !isWin) {
-      const sort = spawn('sort', ['-k1,1'], {
-        env: { ...process.env, LC_ALL: 'C' },
-      })
-      pipeline(
-        fileStream,
-        split2(),
-        new TrixInputTransform(),
-        sort.stdin,
-        err => {
-          if (err) {
-            reject(err)
-          }
-        },
-      )
-
-      pipeline(sort.stdout, split2(), new TrixOutputTransform(), out, err => {
-        if (err) {
-          reject(err)
-        } else {
-          resolve(true)
-        }
-      })
-    } else {
-      const dir = tmp.dirSync({
-        prefix: 'jbrowse-trix-sort',
-      })
-      const tempDir = dir.name
-      const output = split2()
-
-      pipeline(output, new TrixOutputTransform(), out, err => {
-        if (err) {
-          reject(err)
-        }
-      })
-      esort({
-        input: pipeline(fileStream, split2(), new TrixInputTransform(), err => {
-          if (err) {
-            reject(err)
-          }
-        }),
-        output,
-        tempDir,
-      })
-        .asc()
-        .then(resolve, reject)
-    }
-  })
+  if (useExternalSort) {
+    await makeIxWithExternalSort(fileStream, outIxFilename)
+  } else {
+    await makeIxWithJsSort(fileStream, outIxFilename)
+  }
 }
 
 export async function makeIx(inFile: string, outIndex: string) {

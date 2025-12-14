@@ -1,16 +1,12 @@
-import { promisify } from 'util'
-import { finished } from 'stream'
+import { finished } from 'stream/promises'
 import { once } from 'events'
 import fs from 'fs'
 import readline from 'readline'
 
-// locals
 import { binSize, getPrefix } from './util'
 import { optimizePrefixSize } from './optimizePrefixSize'
 
 const ADDRESS_SIZE = 10
-
-const streamFinished = promisify(finished) // (A)
 
 export async function makeIxx(
   inIx: string,
@@ -33,7 +29,8 @@ export async function makeIxx(
     let bytes = 0
 
     for await (const line of rl) {
-      const [word] = line.split(/\s/)
+      const spaceIdx = line.indexOf(' ')
+      const word = spaceIdx === -1 ? line : line.slice(0, spaceIdx)
       const curPrefix = getPrefix(word, prefixSize)
       if (curPrefix !== lastPrefix) {
         startPrefixPos = bytes
@@ -60,6 +57,6 @@ export async function makeIxx(
     }
   } finally {
     out.end()
-    await streamFinished(out)
+    await finished(out)
   }
 }
