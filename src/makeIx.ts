@@ -47,7 +47,9 @@ async function makeIxWithJsSort(fileStream: Readable, outIxFilename: string) {
   const out = fs.createWriteStream(outIxFilename)
 
   // Transform input
-  const transformedInput = fileStream.pipe(split2()).pipe(new TrixInputTransform())
+  const transformedInput = fileStream
+    .pipe(split2())
+    .pipe(new TrixInputTransform())
 
   // Sort lines using external merge sort
   const sortedOutput = split2()

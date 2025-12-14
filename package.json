@@ -7,10 +7,8 @@
   "type": "module",
   "types": "./dist/index.d.ts",
   "exports": {
-    "import": {
-      "import": "./esm/index.js"
-    },
-    "require": {
+    ".": {
+      "import": "./esm/index.js",
       "require": "./dist/index.js"
     }
   },
@@ -28,6 +26,7 @@
     "ixixxjs": "./dist/bin.js"
   },
   "scripts": {
+    "format": "prettier --write .",
     "lint": "eslint --report-unused-disable-directives --max-warnings 0",
     "clean": "rimraf dist esm",
     "prebuild": "yarn clean",
