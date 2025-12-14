@@ -9,7 +9,7 @@ import { TrixOutputTransform } from './TrixOutputTransform'
 import { sortLinesExternal } from './sortLines'
 
 const isWin =
-  typeof process !== 'undefined' ? process.platform === 'win32' : false
+  typeof process === 'undefined' ? false : process.platform === 'win32'
 
 const useExternalSort = !isWin && commandExistsSync('sort')
 

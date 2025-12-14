@@ -16,7 +16,7 @@ export async function sortLinesExternal(
     input,
     output,
     tempDir: dir,
-    maxHeap: 10000,
+    maxHeap: 10_000,
   }).asc()
 }
 
