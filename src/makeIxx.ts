@@ -1,10 +1,10 @@
-import { finished } from 'stream/promises'
 import { once } from 'events'
 import fs from 'fs'
 import readline from 'readline'
+import { finished } from 'stream/promises'
 
-import { binSize, getPrefix } from './util.ts'
 import { optimizePrefixSize } from './optimizePrefixSize.ts'
+import { binSize, getPrefix } from './util.ts'
 
 const ADDRESS_SIZE = 10
 

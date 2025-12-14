@@ -1,6 +1,7 @@
 import { Readable } from 'stream'
-import { makeIxx } from './makeIxx.ts'
+
 import { makeIx, makeIxStream } from './makeIx.ts'
+import { makeIxx } from './makeIxx.ts'
 
 // this file (index.ts) is a translation of ixIxx.c from ucscGenomeBrowser/kent
 // the license of that file is reproduced below

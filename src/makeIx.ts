@@ -1,9 +1,12 @@
-import { pipeline } from 'stream/promises'
+import { spawn } from 'child_process'
+import fs from 'fs'
 import { Readable } from 'stream'
+import { pipeline } from 'stream/promises'
+
 import { sync as commandExistsSync } from 'command-exists'
 import split2 from 'split2'
-import fs from 'fs'
-import { spawn } from 'child_process'
+
+
 import { TrixInputTransform } from './TrixInputTransform.ts'
 import { TrixOutputTransform } from './TrixOutputTransform.ts'
 import { sortLinesExternal } from './sortLines.ts'

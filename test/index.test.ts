@@ -1,8 +1,10 @@
-import { test, expect } from 'vitest'
-import { ixIxxStream } from '../src/'
-import tmp from 'tmp'
 import fs from 'fs'
 import { Readable } from 'stream'
+
+import tmp from 'tmp'
+import { expect, test } from 'vitest'
+
+import { ixIxxStream } from '../src/index.ts'
 
 test('test simple', async () => {
   const l1 = tmp.fileSync()

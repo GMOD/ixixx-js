@@ -1,4 +1,5 @@
 import eslint from '@eslint/js'
+import importPlugin from 'eslint-plugin-import'
 import { defineConfig } from 'eslint/config'
 import eslintPluginUnicorn from 'eslint-plugin-unicorn'
 import tseslint from 'typescript-eslint'
@@ -16,6 +17,7 @@ export default defineConfig(
     },
   },
   eslint.configs.recommended,
+  importPlugin.flatConfigs.recommended,
   ...tseslint.configs.recommended,
   ...tseslint.configs.stylisticTypeChecked,
   ...tseslint.configs.strictTypeChecked,
@@ -66,6 +68,25 @@ export default defineConfig(
       'unicorn/no-nested-ternary': 'off',
       'unicorn/no-useless-undefined': 'off',
       'unicorn/prefer-ternary': 'off',
+
+      'import/extensions': ['error', 'ignorePackages'],
+      'import/no-unresolved': 'off',
+      'import/order': [
+        'error',
+        {
+          named: true,
+          'newlines-between': 'always',
+          alphabetize: {
+            order: 'asc',
+          },
+          groups: [
+            'builtin',
+            ['external', 'internal'],
+            ['parent', 'sibling', 'index', 'object'],
+            'type',
+          ],
+        },
+      ],
     },
   },
 )
