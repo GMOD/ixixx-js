@@ -1,13 +1,12 @@
 import { pipeline } from 'stream/promises'
-import { Readable, Writable } from 'stream'
-import esort from 'external-sorting'
-import tmp from 'tmp'
+import { Readable } from 'stream'
 import { sync as commandExistsSync } from 'command-exists'
 import split2 from 'split2'
 import fs from 'fs'
 import { spawn } from 'child_process'
 import { TrixInputTransform } from './TrixInputTransform'
 import { TrixOutputTransform } from './TrixOutputTransform'
+import { sortLinesExternal } from './sortLines'
 
 const isWin =
   typeof process !== 'undefined' ? process.platform === 'win32' : false
@@ -27,7 +26,6 @@ async function makeIxWithExternalSort(
     throw err
   })
 
-  // Pipeline input → sort stdin
   const inputDone = pipeline(
     fileStream,
     split2(),
@@ -35,7 +33,6 @@ async function makeIxWithExternalSort(
     sort.stdin,
   )
 
-  // Pipeline sort stdout → output
   const outputDone = pipeline(
     sort.stdout,
     split2(),
@@ -47,19 +44,19 @@ async function makeIxWithExternalSort(
 }
 
 async function makeIxWithJsSort(fileStream: Readable, outIxFilename: string) {
-  const dir = tmp.dirSync({ prefix: 'jbrowse-trix-sort' })
   const out = fs.createWriteStream(outIxFilename)
-  const output = split2()
 
-  const outputDone = pipeline(output, new TrixOutputTransform(), out)
+  // Transform input
+  const transformedInput = fileStream.pipe(split2()).pipe(new TrixInputTransform())
 
-  await esort({
-    input: fileStream.pipe(split2()).pipe(new TrixInputTransform()) as Writable,
-    output,
-    tempDir: dir.name,
-  }).asc()
+  // Sort lines using external merge sort
+  const sortedOutput = split2()
+  const sortDone = sortLinesExternal(transformedInput, sortedOutput)
 
-  await outputDone
+  // Transform sorted output and write to file
+  const writeDone = pipeline(sortedOutput, new TrixOutputTransform(), out)
+
+  await Promise.all([sortDone, writeDone])
 }
 
 export async function makeIxStream(

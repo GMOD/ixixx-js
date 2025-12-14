@@ -7,7 +7,7 @@ export class TrixInputTransform extends Transform {
     const id = parts[0]
     let result = ''
     for (let i = 1; i < parts.length; i++) {
-      result += `${parts[i]!.toLowerCase()} ${id}\n`
+      result += `${parts[i].toLowerCase()} ${id}\n`
     }
     this.push(result)
     done()

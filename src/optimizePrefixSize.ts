@@ -63,7 +63,7 @@ export async function optimizePrefixSize(inIx: string) {
 
     for (let i = 0; i < stats.length; i++) {
       const prefixSize = MIN_PREFIX + i
-      const s = stats[i]!
+      const s = stats[i]
       const curPrefix = getPrefix(word, prefixSize)
 
       if (curPrefix !== s.lastPrefix) {
@@ -86,7 +86,7 @@ export async function optimizePrefixSize(inIx: string) {
 
   // Find first prefix size that meets heuristics
   for (let i = 0; i < stats.length; i++) {
-    if (meetsHeuristics(stats[i]!, bytes)) {
+    if (meetsHeuristics(stats[i], bytes)) {
       return MIN_PREFIX + i
     }
   }
