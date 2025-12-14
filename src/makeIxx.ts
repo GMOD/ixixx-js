@@ -1,16 +1,12 @@
-import { promisify } from 'util'
-import { finished } from 'stream'
+import { finished } from 'stream/promises'
 import { once } from 'events'
 import fs from 'fs'
 import readline from 'readline'
 
-// locals
 import { binSize, getPrefix } from './util'
 import { optimizePrefixSize } from './optimizePrefixSize'
 
 const ADDRESS_SIZE = 10
-
-const streamFinished = promisify(finished) // (A)
 
 export async function makeIxx(
   inIx: string,
@@ -61,6 +57,6 @@ export async function makeIxx(
     }
   } finally {
     out.end()
-    await streamFinished(out)
+    await finished(out)
   }
 }
