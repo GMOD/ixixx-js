@@ -81,7 +81,7 @@ class FileParser {
 }
 
 function swap(harr: HeapItem[], a: number, b: number) {
-  ;[harr[a], harr[b]] = [harr[b], harr[a]]
+  ;[harr[a], harr[b]] = [harr[b]!, harr[a]!]
 }
 
 function compare(a: string | typeof EOF, b: string | typeof EOF): number {
@@ -100,10 +100,10 @@ function heapify(harr: HeapItem[], i: number, heapSize: number) {
   const r = t + 2
   let first = i
 
-  if (l < heapSize && compare(harr[l].item, harr[first].item) < 0) {
+  if (l < heapSize && compare(harr[l]!.item, harr[first]!.item) < 0) {
     first = l
   }
-  if (r < heapSize && compare(harr[r].item, harr[first].item) < 0) {
+  if (r < heapSize && compare(harr[r]!.item, harr[first]!.item) < 0) {
     first = r
   }
   if (first !== i) {
@@ -188,8 +188,13 @@ async function mergeSortedFiles(
   const delimiter = '\n'
   const flen = filesPath.length
 
+  if (flen === 0) {
+    await new Promise<void>(resolve => output.end(resolve))
+    return
+  }
+
   if (flen === 1) {
-    const rs = fs.createReadStream(filesPath[0], 'utf8')
+    const rs = fs.createReadStream(filesPath[0]!, 'utf8')
     await pipeline(rs, output)
     return
   }
@@ -198,13 +203,14 @@ async function mergeSortedFiles(
   const files = filesPath.map(file => new FileParser(file, delimiter))
 
   for (let i = 0; i < flen; i++) {
-    harr.push({ item: await files[i].getNextChunk(), file: files[i] })
+    const file = files[i]!
+    harr.push({ item: await file.getNextChunk(), file })
   }
 
   constructHeap(harr)
 
   for (;;) {
-    const first = harr[0]
+    const first = harr[0]!
     const item = first.item
     if (typeof item !== 'string') {
       break

@@ -8,6 +8,7 @@
     "outDir": "dist",
     "strict": true,
     "sourceMap": true,
+    "noUncheckedIndexedAccess": true,
     "esModuleInterop": true,
     "allowImportingTsExtensions": true,
     "rewriteRelativeImportExtensions": true
