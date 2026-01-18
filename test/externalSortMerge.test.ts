@@ -47,7 +47,7 @@ describe('externalSort merge behavior', () => {
     tempDir.removeCallback()
 
     const result = output.data.split('\n').filter(l => l.length > 0)
-    const expected = [...lines].sort()
+    const expected = lines.toSorted()
 
     expect(result).toEqual(expected)
   })

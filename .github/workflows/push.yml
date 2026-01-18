@@ -16,6 +16,8 @@ jobs:
         uses: bahmutov/npm-install@v1
       - name: Sort version
         run: sort --version
+      - name: Lint
+        run: yarn lint
       - name: Test codebase
         run: yarn test
       - name: Upload coverage

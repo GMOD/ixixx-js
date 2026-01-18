@@ -1,4 +1,4 @@
-import { Readable } from 'stream'
+import { Readable, Writable } from 'stream'
 import { pipeline } from 'stream/promises'
 
 import split2 from 'split2'
@@ -6,19 +6,25 @@ import { describe, expect, test } from 'vitest'
 
 import { TrixInputTransform } from '../src/TrixInputTransform.ts'
 
+class StringWritable extends Writable {
+  data = ''
+  _write(
+    chunk: Buffer,
+    _encoding: string,
+    callback: (error?: Error | null) => void,
+  ) {
+    this.data += chunk.toString()
+    callback()
+  }
+}
+
 async function transformInput(lines: string[]): Promise<string> {
   const input = Readable.from(lines.map(l => l + '\n'))
-  const chunks: string[] = []
+  const output = new StringWritable()
 
-  await pipeline(input, split2(), new TrixInputTransform(), async function* (
-    source,
-  ) {
-    for await (const chunk of source) {
-      chunks.push(chunk.toString())
-    }
-  })
+  await pipeline(input, split2(), new TrixInputTransform(), output)
 
-  return chunks.join('')
+  return output.data
 }
 
 describe('TrixInputTransform', () => {

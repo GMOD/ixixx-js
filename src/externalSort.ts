@@ -45,9 +45,7 @@ class FileParser {
       return EOF
     }
 
-    if (!this.fh) {
-      this.fh = await fs.promises.open(this.file, 'r')
-    }
+    this.fh ??= await fs.promises.open(this.file, 'r')
 
     const cBuffer = Buffer.alloc(512)
     let readed: { bytesRead: number }
@@ -151,6 +149,7 @@ async function initialRun(
   }
 
   input.on('data', (chunk: Buffer | string) => {
+    // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
     sBuffer += chunk instanceof Buffer ? chunk.toString('utf8') : chunk
     let dIndex = sBuffer.indexOf(delimiter)
     if (dIndex === sBuffer.length - 1) {
@@ -204,9 +203,9 @@ async function mergeSortedFiles(
 
   constructHeap(harr)
 
-  while (true) {
+  for (;;) {
     const first = harr[0]
-    const item = first?.item
+    const item = first.item
     if (typeof item !== 'string') {
       break
     }

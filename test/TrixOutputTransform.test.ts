@@ -1,4 +1,4 @@
-import { Readable } from 'stream'
+import { Readable, Writable } from 'stream'
 import { pipeline } from 'stream/promises'
 
 import split2 from 'split2'
@@ -6,19 +6,25 @@ import { describe, expect, test } from 'vitest'
 
 import { TrixOutputTransform } from '../src/TrixOutputTransform.ts'
 
+class StringWritable extends Writable {
+  data = ''
+  _write(
+    chunk: Buffer,
+    _encoding: string,
+    callback: (error?: Error | null) => void,
+  ) {
+    this.data += chunk.toString()
+    callback()
+  }
+}
+
 async function transformOutput(lines: string[]): Promise<string> {
   const input = Readable.from(lines.map(l => l + '\n'))
-  const chunks: string[] = []
+  const output = new StringWritable()
 
-  await pipeline(input, split2(), new TrixOutputTransform(), async function* (
-    source,
-  ) {
-    for await (const chunk of source) {
-      chunks.push(chunk.toString())
-    }
-  })
+  await pipeline(input, split2(), new TrixOutputTransform(), output)
 
-  return chunks.join('')
+  return output.data
 }
 
 describe('TrixOutputTransform', () => {
@@ -58,17 +64,11 @@ describe('TrixOutputTransform', () => {
 
   test('strips null characters', async () => {
     const input = Readable.from(['apple\0 id1\n'])
-    const chunks: string[] = []
+    const output = new StringWritable()
 
-    await pipeline(input, split2(), new TrixOutputTransform(), async function* (
-      source,
-    ) {
-      for await (const chunk of source) {
-        chunks.push(chunk.toString())
-      }
-    })
+    await pipeline(input, split2(), new TrixOutputTransform(), output)
 
-    expect(chunks.join('')).toBe('apple id1,1\n')
+    expect(output.data).toBe('apple id1,1\n')
   })
 
   test('handles empty input', async () => {

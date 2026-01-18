@@ -59,7 +59,7 @@ describe('makeIx', () => {
     ])
     const lines = result.trim().split('\n')
     const words = lines.map(l => l.split(' ')[0])
-    expect(words).toEqual([...words].sort())
+    expect(words).toEqual(words.toSorted())
   })
 
   test('groups same words with different ids', async () => {
