@@ -6,7 +6,6 @@ import { pipeline } from 'stream/promises'
 import { sync as commandExistsSync } from 'command-exists'
 import split2 from 'split2'
 
-
 import { TrixInputTransform } from './TrixInputTransform.ts'
 import { TrixOutputTransform } from './TrixOutputTransform.ts'
 import { sortLinesExternal } from './sortLines.ts'

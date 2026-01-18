@@ -1,7 +1,8 @@
 import { Readable, Writable } from 'stream'
 
-import esort from 'external-sorting'
 import tmp from 'tmp'
+
+import { externalSort } from './externalSort.ts'
 
 /**
  * Sort lines from input stream and write to output stream using external merge sort.
@@ -13,12 +14,7 @@ export async function sortLinesExternal(
   tempDir?: string,
 ): Promise<void> {
   const dir = tempDir ?? tmp.dirSync({ prefix: 'ixixx-sort' }).name
-  await esort({
-    input,
-    output,
-    tempDir: dir,
-    maxHeap: 10_000,
-  }).asc()
+  await externalSort(input, output, dir, 10_000)
 }
 
 /**
