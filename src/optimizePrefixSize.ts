@@ -28,15 +28,16 @@ function createStats(): PrefixStats {
 }
 
 function meetsHeuristics(s: PrefixStats, totalBytes: number) {
-  const avgBinSize = s.binSizeTotal / s.binCount
   // some heuristics. note: binSizeTotal===0 means everything was lumped into
   // one bin
-  if (
-    (s.binSizeTotal === 0 && totalBytes > binSize) ||
-    avgBinSize > 3 * binSize ||
-    s.maxBinSize > 10 * binSize
-  ) {
+  if (s.binSizeTotal === 0 && totalBytes > binSize) {
     return false
+  }
+  if (s.binCount > 0) {
+    const avgBinSize = s.binSizeTotal / s.binCount
+    if (avgBinSize > 3 * binSize || s.maxBinSize > 10 * binSize) {
+      return false
+    }
   }
   return true
 }

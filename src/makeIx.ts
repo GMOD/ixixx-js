@@ -24,8 +24,8 @@ async function makeIxWithExternalSort(
     env: { ...process.env, LC_ALL: 'C' },
   })
 
-  sort.on('error', function onSortError(err) {
-    throw err
+  const sortError = new Promise<never>((_, reject) => {
+    sort.on('error', reject)
   })
 
   const inputDone = pipeline(
@@ -42,7 +42,7 @@ async function makeIxWithExternalSort(
     out,
   )
 
-  await Promise.all([inputDone, outputDone])
+  await Promise.race([Promise.all([inputDone, outputDone]), sortError])
 }
 
 async function makeIxWithJsSort(fileStream: Readable, outIxFilename: string) {

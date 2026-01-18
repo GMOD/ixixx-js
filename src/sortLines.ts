@@ -1,3 +1,4 @@
+import fs from 'fs'
 import { Readable, Writable } from 'stream'
 
 import tmp from 'tmp'
@@ -13,8 +14,15 @@ export async function sortLinesExternal(
   output: Writable,
   tempDir?: string,
 ): Promise<void> {
+  const createdTempDir = tempDir === undefined
   const dir = tempDir ?? tmp.dirSync({ prefix: 'ixixx-sort' }).name
-  await externalSort(input, output, dir, 10_000)
+  try {
+    await externalSort(input, output, dir, 10_000)
+  } finally {
+    if (createdTempDir) {
+      await fs.promises.rmdir(dir)
+    }
+  }
 }
 
 /**

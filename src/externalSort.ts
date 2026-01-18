@@ -42,30 +42,34 @@ class FileParser {
     const cBuffer = Buffer.alloc(512)
     let readed: { bytesRead: number }
 
-    while (
-      (readed = await fh.read(cBuffer, 0, 512, this.bytesRead)).bytesRead > 0
-    ) {
-      this.bbuffer = Buffer.concat([this.bbuffer, cBuffer])
-      this.bytesRead += readed.bytesRead
-      const dIndex = this.bbuffer.indexOf(this.delimiter)
-      if (dIndex === -1) {
-        continue
+    try {
+      while (
+        (readed = await fh.read(cBuffer, 0, 512, this.bytesRead)).bytesRead > 0
+      ) {
+        this.bbuffer = Buffer.concat([
+          this.bbuffer,
+          cBuffer.subarray(0, readed.bytesRead),
+        ])
+        this.bytesRead += readed.bytesRead
+        const dIndex = this.bbuffer.indexOf(this.delimiter)
+        if (dIndex === -1) {
+          continue
+        }
+        this.buffer = this.bbuffer.subarray(0, dIndex + 1).toString('utf8')
+        this.bbuffer = this.bbuffer.subarray(dIndex + 1)
+        return this.checkBuffer()
       }
-      this.buffer = this.bbuffer.subarray(0, dIndex + 1).toString('utf8')
-      this.bbuffer = this.bbuffer.subarray(dIndex + 1)
-      await fh.close()
-      return this.checkBuffer()
-    }
 
-    if (this.bbuffer.length > 0 && this.bbuffer.includes(this.delimiter)) {
-      this.buffer = this.bbuffer.toString('utf8')
-      this.bbuffer = Buffer.from('')
-      await fh.close()
-      return this.checkBuffer()
-    }
+      if (this.bbuffer.length > 0 && this.bbuffer.includes(this.delimiter)) {
+        this.buffer = this.bbuffer.toString('utf8')
+        this.bbuffer = Buffer.from('')
+        return this.checkBuffer()
+      }
 
-    await fh.close()
-    return EOF
+      return EOF
+    } finally {
+      await fh.close()
+    }
   }
 }
 
@@ -131,11 +135,8 @@ async function initialRun(
   const writeTBuffer = () => {
     tBuffer.sort()
     const fpath = path.resolve(tempDir, `es_${fileIndex}.tmp`)
-    let mergedBuffer = ''
-    let v: string | undefined
-    while ((v = tBuffer.shift()) !== undefined) {
-      mergedBuffer += `${v}${delimiter}`
-    }
+    const mergedBuffer = tBuffer.join(delimiter) + delimiter
+    tBuffer.length = 0
     fs.writeFileSync(fpath, mergedBuffer, 'utf8')
     files.push(fpath)
     fileIndex++

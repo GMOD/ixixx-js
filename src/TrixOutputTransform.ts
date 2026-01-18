@@ -1,11 +1,7 @@
 import { Transform } from 'stream'
 
 function elt(buff: string[], current: string) {
-  let result = current
-  for (let i = 0; i < buff.length; i++) {
-    result += ` ${buff[i]},${i + 1}`
-  }
-  return result + '\n'
+  return current + buff.map((b, i) => ` ${b},${i + 1}`).join('') + '\n'
 }
 
 export class TrixOutputTransform extends Transform {
