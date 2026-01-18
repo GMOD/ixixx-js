@@ -5,10 +5,10 @@ export class TrixInputTransform extends Transform {
     const line = chunk.toString()
     const parts = line.split(/\s+/)
     const id = parts[0]
-    let result = ''
-    for (let i = 1; i < parts.length; i++) {
-      result += `${parts[i].toLowerCase()} ${id}\n`
-    }
+    const result = parts
+      .slice(1)
+      .map(p => `${p.toLowerCase()} ${id}\n`)
+      .join('')
     this.push(result)
     done()
   }
