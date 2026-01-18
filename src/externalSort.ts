@@ -1,6 +1,7 @@
 import fs from 'fs'
 import path from 'path'
 import { Readable, Writable } from 'stream'
+import { pipeline } from 'stream/promises'
 
 const EOF = Symbol('EOF')
 
@@ -15,6 +16,8 @@ class FileParser {
   private bytesRead = 0
   private file: string
   private delimiter: string
+  private fh: fs.promises.FileHandle | undefined
+  private eof = false
 
   constructor(file: string, delimiter: string) {
     this.file = file
@@ -38,45 +41,49 @@ class FileParser {
       return this.checkBuffer()
     }
 
-    const fh = await fs.promises.open(this.file, 'r')
+    if (this.eof) {
+      return EOF
+    }
+
+    if (!this.fh) {
+      this.fh = await fs.promises.open(this.file, 'r')
+    }
+
     const cBuffer = Buffer.alloc(512)
     let readed: { bytesRead: number }
 
-    try {
-      while (
-        (readed = await fh.read(cBuffer, 0, 512, this.bytesRead)).bytesRead > 0
-      ) {
-        this.bbuffer = Buffer.concat([
-          this.bbuffer,
-          cBuffer.subarray(0, readed.bytesRead),
-        ])
-        this.bytesRead += readed.bytesRead
-        const dIndex = this.bbuffer.indexOf(this.delimiter)
-        if (dIndex === -1) {
-          continue
-        }
-        this.buffer = this.bbuffer.subarray(0, dIndex + 1).toString('utf8')
-        this.bbuffer = this.bbuffer.subarray(dIndex + 1)
-        return this.checkBuffer()
+    while (
+      (readed = await this.fh.read(cBuffer, 0, 512, this.bytesRead)).bytesRead >
+      0
+    ) {
+      this.bbuffer = Buffer.concat([
+        this.bbuffer,
+        cBuffer.subarray(0, readed.bytesRead),
+      ])
+      this.bytesRead += readed.bytesRead
+      const dIndex = this.bbuffer.indexOf(this.delimiter)
+      if (dIndex === -1) {
+        continue
       }
-
-      if (this.bbuffer.length > 0 && this.bbuffer.includes(this.delimiter)) {
-        this.buffer = this.bbuffer.toString('utf8')
-        this.bbuffer = Buffer.from('')
-        return this.checkBuffer()
-      }
-
-      return EOF
-    } finally {
-      await fh.close()
+      this.buffer = this.bbuffer.subarray(0, dIndex + 1).toString('utf8')
+      this.bbuffer = this.bbuffer.subarray(dIndex + 1)
+      return this.checkBuffer()
     }
+
+    if (this.bbuffer.length > 0 && this.bbuffer.includes(this.delimiter)) {
+      this.buffer = this.bbuffer.toString('utf8')
+      this.bbuffer = Buffer.from('')
+      return this.checkBuffer()
+    }
+
+    this.eof = true
+    await this.fh.close()
+    return EOF
   }
 }
 
 function swap(harr: HeapItem[], a: number, b: number) {
-  const temp = harr[a]
-  harr[a] = harr[b]!
-  harr[b] = temp
+  ;[harr[a], harr[b]] = [harr[b], harr[a]]
 }
 
 function compare(a: string | typeof EOF, b: string | typeof EOF): number {
@@ -86,13 +93,7 @@ function compare(a: string | typeof EOF, b: string | typeof EOF): number {
   if (b === EOF) {
     return -1
   }
-  if (a < b) {
-    return -1
-  }
-  if (a === b) {
-    return 0
-  }
-  return 1
+  return a < b ? -1 : a > b ? 1 : 0
 }
 
 function heapify(harr: HeapItem[], i: number, heapSize: number) {
@@ -189,19 +190,8 @@ async function mergeSortedFiles(
   const flen = filesPath.length
 
   if (flen === 1) {
-    await new Promise<void>((resolve, reject) => {
-      const rs = fs.createReadStream(filesPath[0], 'utf8')
-      rs.on('open', () => {
-        rs.pipe(output)
-      })
-      rs.on('error', err => {
-        output.end()
-        reject(err)
-      })
-      rs.on('end', () => {
-        resolve()
-      })
-    })
+    const rs = fs.createReadStream(filesPath[0], 'utf8')
+    await pipeline(rs, output)
     return
   }
 
