@@ -1,5 +1,5 @@
-import fs from 'fs'
-import { Readable } from 'stream'
+import fs from 'node:fs'
+import { Readable } from 'node:stream'
 
 import tmp from 'tmp'
 import { describe, expect, test } from 'vitest'

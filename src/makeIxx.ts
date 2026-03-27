@@ -1,7 +1,7 @@
-import { once } from 'events'
-import fs from 'fs'
-import readline from 'readline'
-import { finished } from 'stream/promises'
+import { once } from 'node:events'
+import fs from 'node:fs'
+import readline from 'node:readline'
+import { finished } from 'node:stream/promises'
 
 import { optimizePrefixSize } from './optimizePrefixSize.ts'
 import { binSize, getPrefix } from './util.ts'

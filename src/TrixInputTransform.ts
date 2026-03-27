@@ -1,4 +1,4 @@
-import { Transform } from 'stream'
+import { Transform } from 'node:stream'
 
 export class TrixInputTransform extends Transform {
   _transform(chunk: Buffer, _encoding: unknown, done: () => void) {

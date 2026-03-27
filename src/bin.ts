@@ -8,12 +8,9 @@ if (!file) {
   console.log('usage: ixixx file.txt [out.ix] [out.ixx]')
   process.exit(1)
 }
-// eslint-disable-next-line @typescript-eslint/no-floating-promises
-;(async () => {
-  try {
-    await ixIxx(file, out1, out2)
-  } catch (error) {
-    console.error(error)
-    process.exit(1)
-  }
-})()
+try {
+  await ixIxx(file, out1, out2)
+} catch (error) {
+  console.error(error)
+  process.exit(1)
+}
