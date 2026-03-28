@@ -1,7 +1,8 @@
 import fs from 'fs'
 import path from 'path'
-import { Readable, Writable } from 'stream'
 import { pipeline } from 'stream/promises'
+
+import type { Readable, Writable } from 'stream'
 
 const EOF = Symbol('EOF')
 

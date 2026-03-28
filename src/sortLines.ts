@@ -1,9 +1,11 @@
 import fs from 'fs'
-import { Readable, Writable } from 'stream'
+
 
 import tmp from 'tmp'
 
 import { externalSort } from './externalSort.ts'
+
+import type { Readable, Writable } from 'stream'
 
 /**
  * Sort lines from input stream and write to output stream using external merge sort.
