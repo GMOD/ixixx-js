@@ -1,5 +1,5 @@
-import fs from 'fs'
-import readline from 'readline'
+import fs from 'node:fs'
+import readline from 'node:readline'
 
 import { binSize, getPrefix } from './util.ts'
 
@@ -63,9 +63,8 @@ export async function optimizePrefixSize(inIx: string) {
     const spaceIdx = line.indexOf(' ')
     const word = spaceIdx === -1 ? line : line.slice(0, spaceIdx)
 
-    for (let i = 0; i < stats.length; i++) {
+    for (const [i, s] of stats.entries()) {
       const prefixSize = MIN_PREFIX + i
-      const s = stats[i]!
       const curPrefix = getPrefix(word, prefixSize)
 
       if (curPrefix !== s.lastPrefix) {
@@ -87,8 +86,8 @@ export async function optimizePrefixSize(inIx: string) {
   }
 
   // Find first prefix size that meets heuristics
-  for (let i = 0; i < stats.length; i++) {
-    if (meetsHeuristics(stats[i]!, bytes)) {
+  for (const [i, s] of stats.entries()) {
+    if (meetsHeuristics(s, bytes)) {
       return MIN_PREFIX + i
     }
   }

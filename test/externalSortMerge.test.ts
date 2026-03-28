@@ -1,4 +1,4 @@
-import { Readable, Writable } from 'stream'
+import { Readable, Writable } from 'node:stream'
 
 import tmp from 'tmp'
 import { describe, expect, test } from 'vitest'
@@ -118,7 +118,7 @@ describe('externalSort merge behavior', () => {
     await externalSort(input, output, tempDir.name, 2)
 
     // Check temp dir is empty (files should be cleaned up)
-    const { readdirSync } = await import('fs')
+    const { readdirSync } = await import('node:fs')
     const remaining = readdirSync(tempDir.name)
     expect(remaining).toHaveLength(0)
 

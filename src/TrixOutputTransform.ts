@@ -1,4 +1,4 @@
-import { Transform } from 'stream'
+import { Transform } from 'node:stream'
 
 function elt(buff: string[], current: string) {
   return current + buff.map((b, i) => ` ${b},${i + 1}`).join('') + '\n'

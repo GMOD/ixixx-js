@@ -1,4 +1,4 @@
-import { Readable, Writable } from 'stream'
+import { Readable, Writable } from 'node:stream'
 
 import tmp from 'tmp'
 import { describe, expect, test } from 'vitest'

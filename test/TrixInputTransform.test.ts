@@ -1,5 +1,5 @@
-import { Readable, Writable } from 'stream'
-import { pipeline } from 'stream/promises'
+import { Readable, Writable } from 'node:stream'
+import { pipeline } from 'node:stream/promises'
 
 import split2 from 'split2'
 import { describe, expect, test } from 'vitest'
