@@ -61,11 +61,7 @@ describe('externalSort', () => {
   })
 
   test('handles lines with spaces', async () => {
-    const result = await sortLines([
-      'cherry pie',
-      'apple tart',
-      'banana split',
-    ])
+    const result = await sortLines(['cherry pie', 'apple tart', 'banana split'])
     expect(result).toEqual(['apple tart', 'banana split', 'cherry pie'])
   })
 

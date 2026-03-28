@@ -45,7 +45,10 @@ describe('TrixInputTransform edge cases', () => {
 
   test('handles mixed whitespace', async () => {
     const result = await transformInput(['id1 \t word1 \t word2'])
-    const lines = result.trim().split('\n').filter(l => l.length > 0)
+    const lines = result
+      .trim()
+      .split('\n')
+      .filter(l => l.length > 0)
     expect(lines).toHaveLength(2)
   })
 

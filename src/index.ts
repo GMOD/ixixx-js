@@ -1,4 +1,3 @@
-
 import { makeIx, makeIxStream } from './makeIx.ts'
 import { makeIxx } from './makeIxx.ts'
 

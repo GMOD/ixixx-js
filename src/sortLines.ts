@@ -1,6 +1,5 @@
 import fs from 'node:fs'
 
-
 import tmp from 'tmp'
 
 import { externalSort } from './externalSort.ts'

@@ -54,17 +54,7 @@ describe('externalSort merge behavior', () => {
 
   test('maintains sort stability with equal elements across files', async () => {
     // Create data that will be split across multiple files with duplicates
-    const lines = [
-      'b',
-      'a',
-      'c',
-      'a',
-      'b',
-      'c',
-      'a',
-      'b',
-      'c',
-    ]
+    const lines = ['b', 'a', 'c', 'a', 'b', 'c', 'a', 'b', 'c']
 
     const input = Readable.from(lines.map(l => l + '\n'))
     const output = new StringWritable()

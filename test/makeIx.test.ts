@@ -34,10 +34,7 @@ async function createIxFromStream(lines: string[]): Promise<string> {
 
 describe('makeIx', () => {
   test('creates index from file', async () => {
-    const result = await createIx([
-      'id1 apple banana',
-      'id2 cherry date',
-    ])
+    const result = await createIx(['id1 apple banana', 'id2 cherry date'])
     expect(result).toContain('apple')
     expect(result).toContain('banana')
     expect(result).toContain('cherry')
@@ -52,21 +49,14 @@ describe('makeIx', () => {
   })
 
   test('sorts output alphabetically', async () => {
-    const result = await createIx([
-      'id1 zebra',
-      'id2 apple',
-      'id3 middle',
-    ])
+    const result = await createIx(['id1 zebra', 'id2 apple', 'id3 middle'])
     const lines = result.trim().split('\n')
     const words = lines.map(l => l.split(' ')[0])
     expect(words).toEqual(words.toSorted())
   })
 
   test('groups same words with different ids', async () => {
-    const result = await createIx([
-      'id1 common unique1',
-      'id2 common unique2',
-    ])
+    const result = await createIx(['id1 common unique1', 'id2 common unique2'])
     const lines = result.trim().split('\n')
     const commonLine = lines.find(l => l.startsWith('common'))
     expect(commonLine).toBeDefined()
@@ -87,10 +77,7 @@ describe('makeIx', () => {
 
 describe('makeIxStream', () => {
   test('creates index from stream', async () => {
-    const result = await createIxFromStream([
-      'id1 hello world',
-      'id2 foo bar',
-    ])
+    const result = await createIxFromStream(['id1 hello world', 'id2 foo bar'])
     expect(result).toContain('hello')
     expect(result).toContain('world')
     expect(result).toContain('foo')

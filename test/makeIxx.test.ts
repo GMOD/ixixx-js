@@ -24,11 +24,8 @@ async function createIxx(
 
 describe('makeIxx', () => {
   test('creates index for simple ix file', async () => {
-    const ixContent = [
-      'apple data1,1',
-      'banana data2,1',
-      'cherry data3,1',
-    ].join('\n') + '\n'
+    const ixContent =
+      ['apple data1,1', 'banana data2,1', 'cherry data3,1'].join('\n') + '\n'
 
     const result = await createIxx(ixContent, 5)
     expect(result).toContain('apple')
@@ -65,10 +62,7 @@ describe('makeIxx', () => {
   })
 
   test('auto-optimizes prefix size when not provided', async () => {
-    const lines = Array.from(
-      { length: 10 },
-      (_, i) => `word${i} data${i},1`,
-    )
+    const lines = Array.from({ length: 10 }, (_, i) => `word${i} data${i},1`)
     const ixContent = lines.join('\n') + '\n'
     const result = await createIxx(ixContent)
     expect(result.length).toBeGreaterThan(0)
