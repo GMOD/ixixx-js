@@ -24,7 +24,7 @@ export default defineConfig(
   eslintPluginUnicorn.configs.recommended,
   {
     rules: {
-      'no-empty': 'off',
+      eqeqeq: 'error',
       'no-console': [
         'warn',
         {
@@ -32,18 +32,19 @@ export default defineConfig(
         },
       ],
       curly: 'error',
+      '@typescript-eslint/consistent-type-imports': 'error',
       semi: ['error', 'never'],
 
-      '@typescript-eslint/ban-ts-comment': 'off',
-      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/ban-ts-comment': [
+        'error',
+        { 'ts-expect-error': 'allow-with-description', 'ts-ignore': true },
+      ],
+      '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/no-non-null-assertion': 'off',
-      '@typescript-eslint/no-unsafe-member-access': 'off',
-      '@typescript-eslint/no-unsafe-argument': 'off',
-      '@typescript-eslint/no-unsafe-assignment': 'off',
-      '@typescript-eslint/no-unsafe-call': 'off',
-      '@typescript-eslint/no-unsafe-return': 'off',
-      '@typescript-eslint/require-await': 'off',
-      '@typescript-eslint/restrict-template-expressions': 'off',
+      '@typescript-eslint/restrict-template-expressions': [
+        'error',
+        { allowNumber: true },
+      ],
 
       '@typescript-eslint/no-unused-vars': [
         'warn',
@@ -55,19 +56,8 @@ export default defineConfig(
       ],
 
       'unicorn/filename-case': 'off',
-      'unicorn/prevent-abbreviations': 'off',
-      'unicorn/no-null': 'off',
-      'unicorn/no-process-exit': 'off',
-      'unicorn/prefer-module': 'off',
-      'unicorn/prefer-top-level-await': 'off',
-      'unicorn/no-array-for-each': 'off',
-      'unicorn/no-for-loop': 'off',
-      'unicorn/prefer-spread': 'off',
-      'unicorn/consistent-function-scoping': 'off',
-      'unicorn/prefer-node-protocol': 'off',
       'unicorn/no-nested-ternary': 'off',
-      'unicorn/no-useless-undefined': 'off',
-      'unicorn/prefer-ternary': 'off',
+      'unicorn/prevent-abbreviations': 'off',
 
       'import/extensions': ['error', 'ignorePackages'],
       'import/no-unresolved': 'off',
