@@ -1,6 +1,6 @@
 import { spawn } from 'child_process'
 import fs from 'fs'
-import { PassThrough, Readable } from 'stream'
+import { PassThrough } from 'stream'
 import { pipeline } from 'stream/promises'
 
 import { sync as commandExistsSync } from 'command-exists'
@@ -9,6 +9,8 @@ import split2 from 'split2'
 import { TrixInputTransform } from './TrixInputTransform.ts'
 import { TrixOutputTransform } from './TrixOutputTransform.ts'
 import { sortLinesExternal } from './sortLines.ts'
+
+import type { Readable } from 'stream'
 
 const isWin =
   typeof process === 'undefined' ? false : process.platform === 'win32'

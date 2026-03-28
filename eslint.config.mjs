@@ -32,6 +32,7 @@ export default defineConfig(
         },
       ],
       curly: 'error',
+      '@typescript-eslint/consistent-type-imports': 'error',
       semi: ['error', 'never'],
 
       '@typescript-eslint/ban-ts-comment': 'off',
