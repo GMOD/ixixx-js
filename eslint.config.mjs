@@ -56,6 +56,7 @@ export default defineConfig(
       ],
 
       'unicorn/filename-case': 'off',
+      'unicorn/no-nested-ternary': 'off',
       'unicorn/prevent-abbreviations': 'off',
 
       'import/extensions': ['error', 'ignorePackages'],
