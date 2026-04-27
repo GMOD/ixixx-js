@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 import { ixIxx } from './index.ts'
 
-async function main() {
-  const [file, out1 = 'out.ix', out2 = 'out.ixx'] = process.argv.slice(2)
+const [file, out1 = 'out.ix', out2 = 'out.ixx'] = process.argv.slice(2)
 
+async function main() {
   if (!file) {
     // eslint-disable-next-line no-console
     console.log('usage: ixixx file.txt [out.ix] [out.ixx]')
@@ -17,4 +17,5 @@ async function main() {
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-floating-promises,unicorn/prefer-top-level-await
 main()
