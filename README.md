@@ -63,3 +63,11 @@ ix file, and find that you are looking for MyGene0001
 ## See also
 
 https://github.com/GMOD/trix-js for the client side library to do the searches
+
+## Publishing
+
+[Trusted publishing](https://docs.npmjs.com/about-trusted-publishing) via GitHub Actions.
+
+```bash
+npm version patch  # or minor/major
+```

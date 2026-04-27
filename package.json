@@ -8,12 +8,10 @@
     "url": "https://github.com/GMOD/ixixx-js.git"
   },
   "type": "module",
-  "types": "./dist/index.d.ts",
+  "main": "dist/index.js",
   "exports": {
-    ".": {
-      "import": "./esm/index.js",
-      "require": "./dist/index.js"
-    }
+    "import": "./esm/index.js",
+    "require": "./dist/index.js"
   },
   "author": {
     "name": "Colin Diesh",
@@ -29,17 +27,17 @@
     "ixixxjs": "./dist/bin.js"
   },
   "scripts": {
+    "test": "vitest",
+    "clean": "rimraf dist esm",
     "format": "prettier --write .",
     "lint": "eslint --report-unused-disable-directives --max-warnings 0",
-    "clean": "rimraf dist esm",
-    "prebuild": "yarn clean",
+    "prebuild": "pnpm clean",
     "build:esm": "tsc --outDir esm",
     "build:es5": "tsc --module commonjs --moduleResolution bundler --outDir dist",
-    "build": "yarn build:esm && yarn build:es5",
     "postbuild:es5": "echo '{\"type\": \"commonjs\"}' > dist/package.json",
-    "test": "vitest",
-    "preversion": "yarn lint && yarn test --run && yarn build",
-    "postversion": "git push --follow-tags"
+    "preversion": "pnpm lint && pnpm test --run && pnpm build",
+    "postversion": "git push --follow-tags",
+    "build": "pnpm build:esm && pnpm build:es5"
   },
   "dependencies": {
     "@jbrowse/quick-lru": "^7.3.5",
@@ -50,19 +48,22 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/command-exists": "^1.2.3",
-    "@types/node": "^25.5.0",
+    "@types/node": "^25.6.0",
     "@types/split2": "^4.2.3",
     "@types/tmp": "^0.2.6",
-    "eslint": "^9.39.4",
+    "eslint": "^10.2.1",
     "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-unicorn": "^64.0.0",
-    "prettier": "^3.8.1",
+    "prettier": "^3.8.3",
     "rimraf": "^6.1.3",
-    "typescript": "^6.0.2",
-    "typescript-eslint": "^8.57.2",
-    "vitest": "^4.1.2"
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.59.0",
+    "vitest": "^4.1.5"
   },
   "publishConfig": {
     "access": "public"
-  }
+  },
+  "keywords": [
+    "bioinformatics"
+  ]
 }
