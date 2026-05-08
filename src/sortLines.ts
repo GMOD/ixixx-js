@@ -1,27 +1,24 @@
 import fs from 'node:fs'
-
-import tmp from 'tmp'
+import os from 'node:os'
+import path from 'node:path'
 
 import { externalSort } from './externalSort.ts'
 
 import type { Readable, Writable } from 'node:stream'
 
-/**
- * Sort lines from input stream and write to output stream using external merge sort.
- * Handles large files by using temp files for intermediate sorted chunks.
- */
 export async function sortLinesExternal(
   input: Readable,
   output: Writable,
   tempDir?: string,
-): Promise<void> {
-  const createdTempDir = tempDir === undefined
-  const dir = tempDir ?? tmp.dirSync({ prefix: 'ixixx-sort' }).name
+) {
+  const created = tempDir === undefined
+  const dir =
+    tempDir ?? fs.mkdtempSync(path.join(os.tmpdir(), 'ixixx-sort-'))
   try {
     await externalSort(input, output, dir, 10_000)
   } finally {
-    if (createdTempDir) {
-      await fs.promises.rmdir(dir)
+    if (created) {
+      await fs.promises.rm(dir, { recursive: true, force: true })
     }
   }
 }

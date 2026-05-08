@@ -3,11 +3,11 @@ import fs from 'node:fs'
 import { PassThrough } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
 
-import { sync as commandExistsSync } from 'command-exists'
 import split2 from 'split2'
 
 import { TrixInputTransform } from './TrixInputTransform.ts'
 import { TrixOutputTransform } from './TrixOutputTransform.ts'
+import { commandExistsSync } from './commandExists.ts'
 import { sortLinesExternal } from './sortLines.ts'
 
 import type { Readable } from 'node:stream'

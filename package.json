@@ -40,17 +40,14 @@
     "build": "pnpm build:esm && pnpm build:es5"
   },
   "dependencies": {
-    "@jbrowse/quick-lru": "^7.3.5",
-    "command-exists": "^1.2.9",
-    "split2": "^4.2.0",
-    "tmp": "^0.2.5"
+    "split2": "^4.2.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@types/command-exists": "^1.2.3",
     "@types/node": "^25.6.0",
     "@types/split2": "^4.2.3",
     "@types/tmp": "^0.2.6",
+    "tmp": "^0.2.5",
     "eslint": "^10.2.1",
     "eslint-plugin-import-x": "^4.16.2",
     "eslint-plugin-unicorn": "^64.0.0",
