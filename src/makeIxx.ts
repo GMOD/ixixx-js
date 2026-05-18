@@ -22,9 +22,9 @@ export async function makeIxx(
       input: fileStream,
     })
 
-    let lastPrefix
-    let writtenPrefix
-    let writtenPos = -binSize
+    let lastPrefix: string | undefined
+    let writtenPrefix: string | undefined
+    let writtenPos: number | undefined
     let startPrefixPos = 0
     let bytes = 0
 
@@ -36,7 +36,9 @@ export async function makeIxx(
         startPrefixPos = bytes
       }
 
-      if (bytes - writtenPos >= binSize && curPrefix !== writtenPrefix) {
+      const dueForWrite =
+        writtenPos === undefined || bytes - writtenPos >= binSize
+      if (dueForWrite && curPrefix !== writtenPrefix) {
         const res = out.write(
           `${curPrefix}${startPrefixPos
             .toString(16)

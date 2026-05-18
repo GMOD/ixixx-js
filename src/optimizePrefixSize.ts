@@ -28,9 +28,8 @@ function createStats(): PrefixStats {
 }
 
 function meetsHeuristics(s: PrefixStats, totalBytes: number) {
-  // some heuristics. note: binSizeTotal===0 means everything was lumped into
-  // one bin
-  if (s.binSizeTotal === 0 && totalBytes > binSize) {
+  // no bins written but file is bigger than a bin: prefix too coarse
+  if (s.binCount === 0 && totalBytes > binSize) {
     return false
   }
   if (s.binCount > 0) {
@@ -53,7 +52,7 @@ export async function optimizePrefixSize(inIx: string) {
 
   // Track stats for all prefix sizes in a single pass
   const stats: PrefixStats[] = []
-  for (let i = 0; i < MAX_PREFIX - MIN_PREFIX; i++) {
+  for (let i = 0; i <= MAX_PREFIX - MIN_PREFIX; i++) {
     stats.push(createStats())
   }
 

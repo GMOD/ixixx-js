@@ -7,22 +7,9 @@ import split2 from 'split2'
 
 import type { Writable } from 'node:stream'
 
-const EOF = Symbol('EOF')
-type Item = string | typeof EOF
-
 interface HeapNode {
-  item: Item
+  item: string
   iter: AsyncIterator<string>
-}
-
-function compare(a: Item, b: Item) {
-  if (a === EOF) {
-    return 1
-  }
-  if (b === EOF) {
-    return -1
-  }
-  return a < b ? -1 : a > b ? 1 : 0
 }
 
 function heapify(harr: HeapNode[], i: number, heapSize: number) {
@@ -31,10 +18,10 @@ function heapify(harr: HeapNode[], i: number, heapSize: number) {
     const l = (cur << 1) + 1
     const r = l + 1
     let first = cur
-    if (l < heapSize && compare(harr[l]!.item, harr[first]!.item) < 0) {
+    if (l < heapSize && harr[l]!.item < harr[first]!.item) {
       first = l
     }
-    if (r < heapSize && compare(harr[r]!.item, harr[first]!.item) < 0) {
+    if (r < heapSize && harr[r]!.item < harr[first]!.item) {
       first = r
     }
     if (first === cur) {
@@ -45,11 +32,6 @@ function heapify(harr: HeapNode[], i: number, heapSize: number) {
     harr[first] = tmp
     cur = first
   }
-}
-
-async function nextItem(iter: AsyncIterator<string>): Promise<Item> {
-  const r = await iter.next()
-  return r.done ? EOF : r.value
 }
 
 async function initialRun(
@@ -90,20 +72,27 @@ async function* mergeIterator(filesPath: string[]) {
 
   const harr: HeapNode[] = []
   for (const iter of iters) {
-    harr.push({ item: await nextItem(iter), iter })
+    const r = await iter.next()
+    if (!r.done) {
+      harr.push({ item: r.value, iter })
+    }
   }
-  for (let i = (harr.length - 1) >> 1; i >= 0; i--) {
-    heapify(harr, i, harr.length)
+  let heapSize = harr.length
+  for (let i = (heapSize - 1) >> 1; i >= 0; i--) {
+    heapify(harr, i, heapSize)
   }
 
-  for (;;) {
-    const first = harr[0]!
-    if (first.item === EOF) {
-      return
+  while (heapSize > 0) {
+    const top = harr[0]!
+    yield `${top.item}\n`
+    const r = await top.iter.next()
+    if (r.done) {
+      heapSize--
+      harr[0] = harr[heapSize]!
+    } else {
+      top.item = r.value
     }
-    yield `${first.item}\n`
-    first.item = await nextItem(first.iter)
-    heapify(harr, 0, harr.length)
+    heapify(harr, 0, heapSize)
   }
 }
 
