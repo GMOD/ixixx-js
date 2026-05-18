@@ -18,14 +18,14 @@ to keep memory usage lower
 
 ```
 npm install -g ixixx
-ixixxjs yourfile.text [out.ix] [out.ixx]
+ixixxjs file.txt [out.ix] [out.ixx]
 ```
 
 ## Internal API
 
 ```
-ixIxxStream(stream: Readable, outIxFilename: string, outIxxFilename:string)
-ixIxx(inFilename:string,outIxFilename:string,outIxxFilename:string)
+ixIxxStream(stream: Readable, outIx: string, outIxx: string, prefixSize?: number)
+ixIxx(inText: string, outIx: string, outIxx: string, prefixSize?: number)
 ```
 
 ## The trix concept
@@ -38,7 +38,7 @@ MyGene0001  kinase signalling
 MyGene0002  binding zinc
 ```
 
-And then crates a new file thats kind of like the inverse of it in an ix file
+And then creates a new file thats kind of like the inverse of it in an ix file
 
 ```
 binding MyGene0002
@@ -69,5 +69,5 @@ https://github.com/GMOD/trix-js for the client side library to do the searches
 [Trusted publishing](https://docs.npmjs.com/about-trusted-publishing) via GitHub Actions.
 
 ```bash
-npm version patch  # or minor/major
+pnpm version patch  # or minor/major
 ```
