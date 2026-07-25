@@ -12,10 +12,10 @@ import { sortLinesExternal } from './sortLines.ts'
 
 import type { Readable } from 'node:stream'
 
-const isWin =
-  typeof process === 'undefined' ? false : process.platform === 'win32'
+const useExternalSort =
+  process.platform !== 'win32' && commandExistsSync('sort')
 
-const useExternalSort = !isWin && commandExistsSync('sort')
+const MAX_STDERR = 4096
 
 async function makeIxWithExternalSort(
   fileStream: Readable,
@@ -26,8 +26,26 @@ async function makeIxWithExternalSort(
     env: { ...process.env, LC_ALL: 'C' },
   })
 
-  const sortError = new Promise<never>((_, reject) => {
+  let stderr = ''
+  sort.stderr.setEncoding('utf8')
+  sort.stderr.on('data', (chunk: string) => {
+    if (stderr.length < MAX_STDERR) {
+      stderr += chunk
+    }
+  })
+
+  // a sort that dies after reading all input, e.g. out of space in TMPDIR,
+  // otherwise looks like success and silently produces a truncated index
+  const sortDone = new Promise<void>((resolve, reject) => {
     sort.on('error', reject)
+    sort.on('close', (code, signal) => {
+      if (code === 0) {
+        resolve()
+      } else {
+        const why = signal ?? `exit code ${code}`
+        reject(new Error(`sort failed (${why}): ${stderr.trim()}`))
+      }
+    })
   })
 
   const inputDone = pipeline(
@@ -44,7 +62,7 @@ async function makeIxWithExternalSort(
     out,
   )
 
-  await Promise.race([Promise.all([inputDone, outputDone]), sortError])
+  await Promise.all([inputDone, outputDone, sortDone])
 }
 
 async function makeIxWithJsSort(fileStream: Readable, outIxFilename: string) {

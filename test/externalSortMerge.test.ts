@@ -1,22 +1,10 @@
-import { Readable, Writable } from 'node:stream'
+import { Readable } from 'node:stream'
 
 import tmp from 'tmp'
 import { describe, expect, test } from 'vitest'
 
+import { StringWritable } from './StringWritable.ts'
 import { externalSort } from '../src/externalSort.ts'
-
-class StringWritable extends Writable {
-  data = ''
-
-  _write(
-    chunk: Buffer,
-    _encoding: string,
-    callback: (error?: Error | null) => void,
-  ) {
-    this.data += chunk.toString()
-    callback()
-  }
-}
 
 describe('externalSort merge behavior', () => {
   test('correctly merges multiple sorted temp files', async () => {

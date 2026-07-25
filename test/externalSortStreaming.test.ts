@@ -3,19 +3,8 @@ import { Readable, Writable } from 'node:stream'
 import tmp from 'tmp'
 import { describe, expect, test } from 'vitest'
 
+import { StringWritable } from './StringWritable.ts'
 import { externalSort } from '../src/externalSort.ts'
-
-class StringWritable extends Writable {
-  data = ''
-  _write(
-    chunk: Buffer,
-    _encoding: string,
-    callback: (error?: Error | null) => void,
-  ) {
-    this.data += chunk.toString()
-    callback()
-  }
-}
 
 async function run(input: Readable, maxHeap = 10_000) {
   const output = new StringWritable()
@@ -79,5 +68,22 @@ describe('externalSort streaming edge cases', () => {
   test('empty lines in input are preserved', async () => {
     const input = Readable.from(['b\n\na\n'])
     expect(await run(input)).toEqual(['a', 'b'])
+  })
+
+  test('rejects and cleans up when the input stream errors', async () => {
+    const fs = await import('node:fs')
+    const dir = tmp.dirSync({ prefix: 'input-err' })
+    const input = new Readable({
+      read() {
+        this.push('a\nb\n')
+        this.destroy(new Error('input boom'))
+      },
+    })
+    const output = new StringWritable()
+    await expect(externalSort(input, output, dir.name, 2)).rejects.toThrow(
+      'input boom',
+    )
+    expect(fs.readdirSync(dir.name)).toHaveLength(0)
+    dir.removeCallback()
   })
 })

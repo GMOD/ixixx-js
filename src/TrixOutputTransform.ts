@@ -1,17 +1,15 @@
 import { Transform } from 'node:stream'
 
+import { chunkSize } from './util.ts'
+
 function elt(buff: string[], current: string) {
-  let result = current
-  let i = 1
-  for (const b of buff) {
-    result += ` ${b},${i++}`
-  }
-  return result + '\n'
+  return `${current}${buff.map((b, i) => ` ${b},${i + 1}`).join('')}\n`
 }
 
 export class TrixOutputTransform extends Transform {
   buff: string[] = []
   current = ''
+  batch = ''
 
   _transform(chunk: Buffer, _encoding: unknown, done: () => void) {
     // weird: need to strip nulls from string, xref
@@ -23,18 +21,26 @@ export class TrixOutputTransform extends Transform {
 
     if (this.current !== id) {
       if (this.buff.length > 0) {
-        this.push(elt(this.buff, this.current))
+        this.batch += elt(this.buff, this.current)
         this.buff = []
       }
       this.current = id
     }
     this.buff.push(data)
+
+    if (this.batch.length >= chunkSize) {
+      this.push(this.batch)
+      this.batch = ''
+    }
     done()
   }
 
   _flush(done: () => void) {
     if (this.buff.length > 0) {
-      this.push(elt(this.buff, this.current))
+      this.batch += elt(this.buff, this.current)
+    }
+    if (this.batch !== '') {
+      this.push(this.batch)
     }
     done()
   }

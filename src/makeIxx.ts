@@ -1,8 +1,8 @@
 import { once } from 'node:events'
 import fs from 'node:fs'
-import readline from 'node:readline'
 import { finished } from 'node:stream/promises'
 
+import { ixWords } from './ixWords.ts'
 import { optimizePrefixSize } from './optimizePrefixSize.ts'
 import { binSize, getPrefix } from './util.ts'
 
@@ -13,49 +13,36 @@ export async function makeIxx(
   outIxx: string,
   prefixSizeParam?: number,
 ) {
-  const out = fs.createWriteStream(outIxx)
   const prefixSize = prefixSizeParam ?? (await optimizePrefixSize(inIx))
+  const out = fs.createWriteStream(outIxx)
 
   try {
-    const fileStream = fs.createReadStream(inIx)
-    const rl = readline.createInterface({
-      input: fileStream,
-    })
-
-    let lastPrefix: string | undefined
-    let writtenPrefix: string | undefined
-    let writtenPos: number | undefined
+    let lastPrefix = ''
+    let writtenPrefix = ''
+    let writtenPos = -binSize
     let startPrefixPos = 0
-    let bytes = 0
 
-    for await (const line of rl) {
-      const spaceIdx = line.indexOf(' ')
-      const word = spaceIdx === -1 ? line : line.slice(0, spaceIdx)
+    for await (const { word, offset } of ixWords(inIx)) {
       const curPrefix = getPrefix(word, prefixSize)
       if (curPrefix !== lastPrefix) {
-        startPrefixPos = bytes
+        startPrefixPos = offset
       }
 
-      const dueForWrite =
-        writtenPos === undefined || bytes - writtenPos >= binSize
-      if (dueForWrite && curPrefix !== writtenPrefix) {
-        const res = out.write(
-          `${curPrefix}${startPrefixPos
-            .toString(16)
-            .toUpperCase()
-            .padStart(ADDRESS_SIZE, '0')}\n`,
-        )
+      if (offset - writtenPos >= binSize && curPrefix !== writtenPrefix) {
+        const address = startPrefixPos
+          .toString(16)
+          .toUpperCase()
+          .padStart(ADDRESS_SIZE, '0')
 
-        // Handle backpressure
+        // handle backpressure
         // ref https://nodesource.com/blog/understanding-streams-in-nodejs/
-        if (!res) {
+        if (!out.write(`${curPrefix}${address}\n`)) {
           await once(out, 'drain')
         }
-        writtenPos = bytes
+        writtenPos = offset
         writtenPrefix = curPrefix
       }
       lastPrefix = curPrefix
-      bytes += line.length + 1
     }
   } finally {
     out.end()

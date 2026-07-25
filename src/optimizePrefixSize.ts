@@ -1,11 +1,10 @@
 import fs from 'node:fs'
-import readline from 'node:readline'
 
-import { binSize, getPrefix } from './util.ts'
+import { ixWords } from './ixWords.ts'
+import { binSize } from './util.ts'
 
 interface PrefixStats {
-  lastPrefix: string
-  writtenPrefix: string
+  writtenWord: string
   writtenPos: number
   startPrefixPos: number
   lastBin: number
@@ -16,8 +15,7 @@ interface PrefixStats {
 
 function createStats(): PrefixStats {
   return {
-    lastPrefix: '',
-    writtenPrefix: '',
+    writtenWord: '',
     writtenPos: -binSize,
     startPrefixPos: 0,
     lastBin: 0,
@@ -25,6 +23,21 @@ function createStats(): PrefixStats {
     binCount: 0,
     maxBinSize: 0,
   }
+}
+
+function commonPrefixLength(a: string, b: string) {
+  const len = Math.min(a.length, b.length)
+  let i = 0
+  // utf-16 code units, since that is what slice() in getPrefix compares
+  // eslint-disable-next-line unicorn/prefer-code-point
+  while (i < len && a.charCodeAt(i) === b.charCodeAt(i)) {
+    i++
+  }
+  return i
+}
+
+function samePrefix(a: string, b: string, prefixSize: number) {
+  return a === b || commonPrefixLength(a, b) >= prefixSize
 }
 
 function meetsHeuristics(s: PrefixStats, totalBytes: number) {
@@ -45,50 +58,44 @@ const MIN_PREFIX = 5
 const MAX_PREFIX = 40
 
 export async function optimizePrefixSize(inIx: string) {
-  const fileStream = fs.createReadStream(inIx)
-  const rl = readline.createInterface({
-    input: fileStream,
-  })
+  // track stats for all prefix sizes in a single pass
+  const stats = Array.from({ length: MAX_PREFIX - MIN_PREFIX + 1 }, createStats)
 
-  // Track stats for all prefix sizes in a single pass
-  const stats: PrefixStats[] = []
-  for (let i = 0; i <= MAX_PREFIX - MIN_PREFIX; i++) {
-    stats.push(createStats())
-  }
-
-  let bytes = 0
-  for await (const line of rl) {
-    // Use indexOf instead of regex split for performance
-    const spaceIdx = line.indexOf(' ')
-    const word = spaceIdx === -1 ? line : line.slice(0, spaceIdx)
+  let lastWord = ''
+  for await (const { word, offset } of ixWords(inIx)) {
+    // prefixes are compared via shared-prefix length rather than by building a
+    // padded prefix per size, which would allocate 36 strings per line. words
+    // never contain spaces, so getPrefix(a, n) === getPrefix(b, n) exactly when
+    // a === b or the words agree on their first n characters
+    const lastShared = commonPrefixLength(word, lastWord)
+    const sameAsLast = word === lastWord
 
     for (const [i, s] of stats.entries()) {
       const prefixSize = MIN_PREFIX + i
-      const curPrefix = getPrefix(word, prefixSize)
 
-      if (curPrefix !== s.lastPrefix) {
-        s.startPrefixPos = bytes
+      if (!sameAsLast && prefixSize > lastShared) {
+        s.startPrefixPos = offset
       }
 
-      if (bytes - s.writtenPos >= binSize && curPrefix !== s.writtenPrefix) {
+      // the shared-prefix check is behind the cheap byte-distance check because
+      // it only becomes relevant once per bin
+      if (
+        offset - s.writtenPos >= binSize &&
+        (s.binCount === 0 || !samePrefix(word, s.writtenWord, prefixSize))
+      ) {
         const currentBinSize = s.startPrefixPos - s.lastBin
         s.binSizeTotal += currentBinSize
         s.maxBinSize = Math.max(currentBinSize, s.maxBinSize)
         s.binCount++
         s.lastBin = s.startPrefixPos
-        s.writtenPos = bytes
-        s.writtenPrefix = curPrefix
+        s.writtenPos = offset
+        s.writtenWord = word
       }
-      s.lastPrefix = curPrefix
     }
-    bytes += line.length + 1
+    lastWord = word
   }
 
-  // Find first prefix size that meets heuristics
-  for (const [i, s] of stats.entries()) {
-    if (meetsHeuristics(s, bytes)) {
-      return MIN_PREFIX + i
-    }
-  }
-  return MAX_PREFIX
+  const { size } = await fs.promises.stat(inIx)
+  const found = stats.findIndex(s => meetsHeuristics(s, size))
+  return found === -1 ? MAX_PREFIX : MIN_PREFIX + found
 }

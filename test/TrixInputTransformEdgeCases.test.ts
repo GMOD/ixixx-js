@@ -1,22 +1,11 @@
-import { Readable, Writable } from 'node:stream'
+import { Readable } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
 
 import split2 from 'split2'
 import { describe, expect, test } from 'vitest'
 
+import { StringWritable } from './StringWritable.ts'
 import { TrixInputTransform } from '../src/TrixInputTransform.ts'
-
-class StringWritable extends Writable {
-  data = ''
-  _write(
-    chunk: Buffer,
-    _encoding: string,
-    callback: (error?: Error | null) => void,
-  ) {
-    this.data += chunk.toString()
-    callback()
-  }
-}
 
 async function transformInput(lines: string[]): Promise<string> {
   const input = Readable.from(lines.map(l => l + '\n'))
@@ -35,6 +24,22 @@ describe('TrixInputTransform edge cases', () => {
     const lines = result.trim().split('\n')
     expect(lines.every(l => l.length > 0)).toBe(true)
     expect(lines).toHaveLength(2)
+  })
+
+  test('ignores trailing whitespace instead of emitting an empty word', async () => {
+    expect(await transformInput(['id1 word1  '])).toBe('word1 id1\n')
+  })
+
+  test('ignores leading whitespace instead of emitting an empty id', async () => {
+    expect(await transformInput([' id1 word1'])).toBe('word1 id1\n')
+  })
+
+  test('ignores trailing carriage return', async () => {
+    expect(await transformInput(['id1 word1\r'])).toBe('word1 id1\n')
+  })
+
+  test('emits nothing for a line with an id and only whitespace', async () => {
+    expect(await transformInput(['id1   '])).toBe('')
   })
 
   test('handles tab characters as whitespace', async () => {
