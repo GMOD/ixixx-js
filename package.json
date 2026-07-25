@@ -8,6 +8,10 @@
     "url": "https://github.com/GMOD/ixixx-js.git"
   },
   "type": "module",
+  "sideEffects": [
+    "./*/bin.js",
+    "./src/bin.ts"
+  ],
   "main": "dist/index.js",
   "exports": {
     "import": "./esm/index.js",
