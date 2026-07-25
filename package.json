@@ -1,6 +1,7 @@
 {
   "name": "ixixx",
   "version": "3.0.10",
+  "packageManager": "pnpm@11.15.1",
   "description": "JavaScript implementation of trix text indexing",
   "license": "MIT",
   "repository": {
