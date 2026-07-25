@@ -29,7 +29,6 @@ function commonPrefixLength(a: string, b: string) {
   const len = Math.min(a.length, b.length)
   let i = 0
   // utf-16 code units, since that is what slice() in getPrefix compares
-  // eslint-disable-next-line unicorn/prefer-code-point
   while (i < len && a.charCodeAt(i) === b.charCodeAt(i)) {
     i++
   }
