@@ -5,6 +5,7 @@ import { pipeline } from 'node:stream/promises'
 
 import split2 from 'split2'
 
+import { compareCodePoints } from './compareCodePoints.ts'
 import { chunkSize } from './util.ts'
 
 import type { Writable } from 'node:stream'
@@ -30,10 +31,16 @@ function heapify(harr: HeapNode[], i: number, heapSize: number) {
     const l = (cur << 1) + 1
     const r = l + 1
     let first = cur
-    if (l < heapSize && harr[l]!.item < harr[first]!.item) {
+    if (
+      l < heapSize &&
+      compareCodePoints(harr[l]!.item, harr[first]!.item) < 0
+    ) {
       first = l
     }
-    if (r < heapSize && harr[r]!.item < harr[first]!.item) {
+    if (
+      r < heapSize &&
+      compareCodePoints(harr[r]!.item, harr[first]!.item) < 0
+    ) {
       first = r
     }
     if (first === cur) {
@@ -56,7 +63,7 @@ async function initialRun(
 
   const flush = async () => {
     if (buf.length > 0) {
-      buf.sort()
+      buf.sort(compareCodePoints)
       const fpath = path.resolve(tempDir, `es_${files.length}.tmp`)
       await fs.promises.writeFile(fpath, buf.join('\n') + '\n')
       buf.length = 0
