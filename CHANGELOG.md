@@ -1,3 +1,31 @@
+## [3.0.11](https://github.com/GMOD/ixixx-js/compare/v3.0.10...v3.0.11) (2026-08-01)
+
+### Bug Fixes
+
+- Collapse a record repeated for the same word in the ix
+- Stop the external sort leaking fds, stalling, and hitting EMFILE
+- Count the run to end-of-file when scoring a prefix size
+
+### Chores
+
+- Sha-pin actions, take pnpm version from packageManager, node 24
+- Pin pnpm via the `packageManager` field, so local pnpm and CI agree
+- Share one eslint-plugin-unicorn opt-out list across the repos
+- Turn off unicorn/prefer-early-return across the repos
+- Add git-cliff for changelog generation
+
+### Documentation
+
+- Backfill changelog for v2.2.3 through v3.0.10
+
+### Refactoring
+
+- Set exitCode in the cli instead of calling process.exit
+
+### Tests
+
+- Cover the pure-JS sort fallback end to end
+
 # v3.0.10
 
 - Fix ixx byte offsets for non-ASCII input: offsets were computed from
