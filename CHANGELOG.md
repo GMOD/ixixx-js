@@ -1,3 +1,85 @@
+# v3.0.10
+
+- Fix ixx byte offsets for non-ASCII input: offsets were computed from
+  string length rather than bytes, so any non-ASCII text in the ix shifted
+  every later address and byte-range lookups landed mid-line
+- Fix silent success when the `sort` subprocess fails after reading its
+  input (e.g. TMPDIR out of space), which previously produced a truncated
+  index that reported success
+- Fix hang when the input stream errors during external sort, since
+  `pipe()` does not forward errors to the splitter
+- Fix incorrect term extraction for lines with leading/trailing whitespace
+- Fix the pure-JS sort fallback (used on Windows, or when `sort` is
+  unavailable) to order lines by UTF-8 bytes like `LC_ALL=C sort`, so ix
+  output is consistent across platforms
+- Fix `commandExistsSync` accepting a directory named `sort` as the
+  executable
+- Close temp file handles left open when a merge consumer stops early or
+  prefix optimization throws
+- Substantial speedups to `optimizePrefixSize` and `makeIx` (roughly 10x
+  and 2x respectively, measured on 300k input lines)
+- Mark the package side-effect free apart from the CLI entry point, for
+  better tree-shaking
+
+# v3.0.9
+
+- CI: rename the merged publish workflow back to publish.yml so npm
+  trusted publishing's OIDC trust config keeps matching
+
+# v3.0.8
+
+- CI: gate npm publish on the test job (lint, build, test) passing in the
+  same workflow run
+
+# v3.0.7
+
+- Fix README inaccuracies
+
+# v3.0.6
+
+- Fix `optimizePrefixSize` never evaluating the maximum prefix size (40)
+- Simplify the external-sort merge heap and stream helpers; drop the
+  unused `tempDir` parameter from `sortLines`
+
+# v3.0.5
+
+- Fix external-sort temp files not being cleaned up when a run errored
+- Drop runtime dependencies on `command-exists` and `tmp`, replacing them
+  with small fs-based helpers
+
+# v3.0.4
+
+- Migrate build tooling from yarn to pnpm
+- Update to TypeScript 6 with nodenext module resolution
+- Add npm trusted publishing (provenance) via GitHub Actions
+- Enable stricter type-checking (noUncheckedIndexedAccess) throughout
+
+# v3.0.3
+
+- Inline the external-sorting module as our own implementation to fix ESM
+  usage issues, replacing the `external-sorting` npm dependency
+
+# v3.0.2
+
+- Internal: explicit `.ts` import extensions for nodenext module
+  resolution
+
+# v3.0.1
+
+- Internal: dependency bumps and tsconfig cleanup
+
+# v3.0.0
+
+- Replace the `external-sorting` npm dependency with an in-house external
+  merge sort
+- Compute prefix-size optimization stats for all candidate prefix sizes in
+  a single pass instead of re-reading the file once per size
+- Migrate tests from jest to vitest
+
+# v2.2.3
+
+- Fix usage on Windows by avoiding the external GNU `sort` dependency
+
 # v2.2.2
 
 - Fix external-sorting piping system
