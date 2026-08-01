@@ -4,18 +4,17 @@ import { ixIxx } from './index.ts'
 const [file, out1 = 'out.ix', out2 = 'out.ixx'] = process.argv.slice(2)
 
 async function main() {
-  if (!file) {
-    // eslint-disable-next-line no-console
-    console.log('usage: ixixx file.txt [out.ix] [out.ixx]')
-    process.exit(1)
-  }
-  try {
+  if (file) {
     await ixIxx(file, out1, out2)
-  } catch (error) {
-    console.error(error)
-    process.exit(1)
+  } else {
+    console.error('usage: ixixx file.txt [out.ix] [out.ixx]')
+    process.exitCode = 1
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-floating-promises
-main()
+// exitCode rather than process.exit(), which can drop buffered output when
+// stdout/stderr is a pipe
+main().catch((error: unknown) => {
+  console.error(error)
+  process.exitCode = 1
+})
