@@ -46,6 +46,20 @@ describe('TrixOutputTransform', () => {
     expect(result).toBe('apple id1,1 id2,2\nbanana id3,1 id4,2\n')
   })
 
+  test('collapses a record repeated for the same word', async () => {
+    const result = await transformOutput([
+      'apple id1',
+      'apple id1',
+      'apple id2',
+    ])
+    expect(result).toBe('apple id1,1 id2,2\n')
+  })
+
+  test('keeps a record that recurs under a different word', async () => {
+    const result = await transformOutput(['apple id1', 'banana id1'])
+    expect(result).toBe('apple id1,1\nbanana id1,1\n')
+  })
+
   test('handles line with only id (no data)', async () => {
     const result = await transformOutput(['word'])
     expect(result).toBe('word ,1\n')

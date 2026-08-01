@@ -136,3 +136,18 @@ describe('error handling', () => {
     l2.removeCallback()
   })
 })
+
+describe('duplicate terms', () => {
+  test('a term repeated in one record yields one hit, not several', async () => {
+    const l1 = tmp.fileSync()
+    const l2 = tmp.fileSync()
+    const stream = Readable.from(['doc1 helix loop helix\n', 'doc2 helix\n'])
+
+    await ixIxxStream(stream, l1.name, l2.name)
+    const ix = fs.readFileSync(l1.name, 'utf8')
+
+    expect(ix).toContain('helix doc1,1 doc2,2\n')
+    l1.removeCallback()
+    l2.removeCallback()
+  })
+})

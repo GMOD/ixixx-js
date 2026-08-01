@@ -26,7 +26,12 @@ export class TrixOutputTransform extends Transform {
       }
       this.current = id
     }
-    this.buff.push(data)
+    // a term repeated within one input record produces identical lines, which
+    // the sort puts next to each other. emitting both would hand the reader the
+    // same record twice, and it counts each one against its result cap
+    if (this.buff.at(-1) !== data) {
+      this.buff.push(data)
+    }
 
     if (this.batch.length >= chunkSize) {
       this.push(this.batch)
