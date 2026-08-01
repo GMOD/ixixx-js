@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 
 import { ixWords } from './ixWords.ts'
-import { binSize } from './util.ts'
+import { binSize, commonPrefixLength, samePrefix } from './util.ts'
 
 interface PrefixStats {
   writtenWord: string
@@ -25,32 +25,18 @@ function createStats(): PrefixStats {
   }
 }
 
-function commonPrefixLength(a: string, b: string) {
-  const len = Math.min(a.length, b.length)
-  let i = 0
-  // utf-16 code units, since that is what slice() in getPrefix compares
-  while (i < len && a.charCodeAt(i) === b.charCodeAt(i)) {
-    i++
-  }
-  return i
-}
-
-function samePrefix(a: string, b: string, prefixSize: number) {
-  return a === b || commonPrefixLength(a, b) >= prefixSize
-}
-
 function meetsHeuristics(s: PrefixStats, totalBytes: number) {
-  // no bins written but file is bigger than a bin: prefix too coarse
-  if (s.binCount === 0 && totalBytes > binSize) {
-    return false
-  }
-  if (s.binCount > 0) {
-    const avgBinSize = s.binSizeTotal / s.binCount
-    if (avgBinSize > 3 * binSize || s.maxBinSize > 10 * binSize) {
-      return false
-    }
-  }
-  return true
+  // the stretch from the last bin to the end of the file is what a search
+  // landing in it has to scan, so it counts as a bin even though no ixx entry
+  // marks its end. leaving it out scores a prefix that writes one bin and then
+  // never changes again as perfect, and every word sharing the first five
+  // characters (ENSG00000139618 and friends) is exactly that case: it wins with
+  // a single ixx entry at offset 0, so every search rescans the whole ix
+  const tail = totalBytes - s.lastBin
+  const avgBinSize = (s.binSizeTotal + tail) / (s.binCount + 1)
+  return (
+    avgBinSize <= 3 * binSize && Math.max(s.maxBinSize, tail) <= 10 * binSize
+  )
 }
 
 const MIN_PREFIX = 5
