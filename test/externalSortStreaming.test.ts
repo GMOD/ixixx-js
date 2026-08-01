@@ -1,7 +1,8 @@
+import fs from 'node:fs'
 import { Readable, Writable } from 'node:stream'
 
 import tmp from 'tmp'
-import { describe, expect, test } from 'vitest'
+import { describe, expect, test, vi } from 'vitest'
 
 import { StringWritable } from './StringWritable.ts'
 import { externalSort } from '../src/externalSort.ts'
@@ -50,7 +51,6 @@ describe('externalSort streaming edge cases', () => {
   })
 
   test('cleans up temp files even on output error', async () => {
-    const fs = await import('node:fs')
     const dir = tmp.dirSync({ prefix: 'cleanup-err' })
     const input = Readable.from(['a\nb\nc\nd\n'])
     const failing = new Writable({
@@ -71,7 +71,6 @@ describe('externalSort streaming edge cases', () => {
   })
 
   test('rejects and cleans up when the input stream errors', async () => {
-    const fs = await import('node:fs')
     const dir = tmp.dirSync({ prefix: 'input-err' })
     const input = new Readable({
       read() {
@@ -80,10 +79,52 @@ describe('externalSort streaming edge cases', () => {
       },
     })
     const output = new StringWritable()
+    // whatever reads the output has to learn the sort died, otherwise it waits
+    // forever for an end that mergeSortedFiles never gets to write
+    const outputError = new Promise<Error>(resolve => {
+      output.once('error', resolve)
+    })
     await expect(externalSort(input, output, dir.name, 2)).rejects.toThrow(
       'input boom',
     )
+    expect((await outputError).message).toBe('input boom')
+    expect(output.destroyed).toBe(true)
     expect(fs.readdirSync(dir.name)).toHaveLength(0)
+    dir.removeCallback()
+  })
+
+  test('closes the temp file readers when the merge is abandoned', async () => {
+    const dir = tmp.dirSync({ prefix: 'merge-abort' })
+    const readers: fs.ReadStream[] = []
+    const createReadStream = fs.createReadStream.bind(fs)
+    const spy = vi
+      .spyOn(fs, 'createReadStream')
+      .mockImplementation((file, options) => {
+        const stream = createReadStream(file, options)
+        readers.push(stream)
+        return stream
+      })
+
+    // each temp run has to exceed the 64KB read buffer, otherwise a reader
+    // drains its file in one read and closes before the merge is torn down
+    const input = Readable.from(
+      Array.from(
+        { length: 2000 },
+        (_, i) => `${String(2000 - i).padStart(4, '0')}${'x'.repeat(500)}\n`,
+      ),
+    )
+    const failing = new Writable({
+      write(_chunk, _enc, cb) {
+        cb(new Error('boom'))
+      },
+    })
+    await expect(externalSort(input, failing, dir.name, 250)).rejects.toThrow(
+      'boom',
+    )
+    spy.mockRestore()
+
+    expect(readers.length).toBeGreaterThan(1)
+    expect(readers.filter(r => !r.destroyed)).toEqual([])
     dir.removeCallback()
   })
 })

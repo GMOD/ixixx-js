@@ -15,12 +15,16 @@ interface HeapNode {
   iter: AsyncIterator<string>
 }
 
-// pipe() does not forward errors, so a failing input would leave the splitter
-// open and the consumer waiting forever
+// pipe() propagates neither errors nor teardown: a failing input would leave
+// the splitter open and the consumer waiting forever, and a consumer that stops
+// early would leave the input's file descriptor open. pipeline() destroys in
+// both directions, and the consumer sees any input error because pipeline
+// destroys the splitter with it
 function splitLines(input: Readable): AsyncIterable<string> {
-  const splitter = input.pipe(split2())
-  input.on('error', (error: Error) => {
-    splitter.destroy(error)
+  const splitter = split2()
+  pipeline(input, splitter).catch(() => {
+    // nothing to report here: pipeline destroys the splitter with the error, so
+    // the consumer iterating it is the one that sees it
   })
   return splitter
 }
@@ -125,15 +129,50 @@ async function* mergeIterator(filesPath: string[]) {
   }
 }
 
-async function mergeSortedFiles(filesPath: string[], output: Writable) {
-  if (filesPath.length === 0) {
+async function unlinkTemp(file: string) {
+  await fs.promises.unlink(file).catch((error: unknown) => {
+    console.error(`failed to unlink temp file ${file}:`, error)
+  })
+}
+
+// a merge holds one file handle open per run for its whole duration, so a sort
+// with thousands of runs would blow past the process fd limit (EMFILE). runs
+// above this many are folded down first, which costs an extra pass over the
+// data but only for sorts big enough to need it
+export const maxFanIn = 64
+
+// replaces groups of runs with a single merged run until few enough are left to
+// merge in one pass. `files` is edited in place and always lists exactly the
+// runs that exist on disk, so the caller's cleanup stays correct if this throws
+async function reduceRuns(files: string[], tempDir: string) {
+  let generation = 0
+  while (files.length > maxFanIn) {
+    const group = files.slice(0, maxFanIn)
+    const fpath = path.resolve(tempDir, `es_g${generation++}.tmp`)
+    files.push(fpath)
+    await pipeline(
+      Readable.from(mergeIterator(group)),
+      fs.createWriteStream(fpath),
+    )
+    files.splice(0, maxFanIn)
+    await Promise.all(group.map(unlinkTemp))
+  }
+}
+
+async function mergeSortedFiles(
+  files: string[],
+  tempDir: string,
+  output: Writable,
+) {
+  await reduceRuns(files, tempDir)
+  if (files.length === 0) {
     await new Promise<void>(resolve => {
       output.end(resolve)
     })
-  } else if (filesPath.length === 1) {
-    await pipeline(fs.createReadStream(filesPath[0]!), output)
+  } else if (files.length === 1) {
+    await pipeline(fs.createReadStream(files[0]!), output)
   } else {
-    await pipeline(Readable.from(mergeIterator(filesPath)), output)
+    await pipeline(Readable.from(mergeIterator(files)), output)
   }
 }
 
@@ -146,14 +185,13 @@ export async function externalSort(
   const files: string[] = []
   try {
     await initialRun(input, tempDir, maxHeap, files)
-    await mergeSortedFiles(files, output)
+    await mergeSortedFiles(files, tempDir, output)
+  } catch (error) {
+    // mergeSortedFiles is what ends the output, so failing before it would
+    // leave whatever reads the output waiting on a stream that never finishes
+    output.destroy(error instanceof Error ? error : new Error(String(error)))
+    throw error
   } finally {
-    await Promise.all(
-      files.map(file =>
-        fs.promises.unlink(file).catch((error: unknown) => {
-          console.error(`failed to unlink temp file ${file}:`, error)
-        }),
-      ),
-    )
+    await Promise.all(files.map(unlinkTemp))
   }
 }
