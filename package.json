@@ -6,7 +6,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/GMOD/ixixx-js.git"
+    "url": "git+https://github.com/GMOD/ixixx-js.git"
   },
   "type": "module",
   "sideEffects": [
@@ -29,7 +29,7 @@
     "src"
   ],
   "bin": {
-    "ixixxjs": "./dist/bin.js"
+    "ixixxjs": "dist/bin.js"
   },
   "scripts": {
     "test": "vitest",
