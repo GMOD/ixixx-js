@@ -73,4 +73,25 @@ describe('ixWords', () => {
       { word: 'z', offset: 4 + line.length + 1 },
     ])
   })
+
+  test('a multibyte character split across a read stays one character', async () => {
+    // 日 lands on bytes 65535-65537, straddling the 64kb read boundary, so the
+    // field is only decodable once both halves have arrived
+    const word = `${'x'.repeat(65_535)}日y`
+    expect(await readWords(`${word} id,1\nz y\n`)).toEqual([
+      { word, offset: 0 },
+      { word: 'z', offset: Buffer.byteLength(word) + 6 },
+    ])
+  })
+
+  test('a long record list is not held in memory to reach the next line', async () => {
+    // a term shared by many records: the field is tiny but the line runs for
+    // megabytes, and only the offsets past it have to stay right
+    const long = `hot${' rec,1'.repeat(500_000)}`
+    expect(await readWords(`a b\n${long}\nz y\n`)).toEqual([
+      { word: 'a', offset: 0 },
+      { word: 'hot', offset: 4 },
+      { word: 'z', offset: 4 + long.length + 1 },
+    ])
+  })
 })
