@@ -17,6 +17,10 @@ const useExternalSort =
 
 const MAX_STDERR = 4096
 
+function isEpipe(error: unknown) {
+  return (error as NodeJS.ErrnoException | null | undefined)?.code === 'EPIPE'
+}
+
 async function makeIxWithExternalSort(
   fileStream: Readable,
   outIxFilename: string,
@@ -62,7 +66,20 @@ async function makeIxWithExternalSort(
     out,
   )
 
-  await Promise.all([inputDone, outputDone, sortDone])
+  // all three are waited out rather than raced, because the first failure to
+  // arrive is often the least informative one. a sort that dies before draining
+  // its stdin — a bad TMPDIR, say — trips the input pipeline with EPIPE while
+  // sortDone is the one holding its exit status and stderr. EPIPE on the input
+  // side never means anything else, so it is the reason of last resort; the
+  // rest are listed cause before symptom
+  const failures = (await Promise.allSettled([inputDone, outputDone, sortDone]))
+    .filter(outcome => outcome.status === 'rejected')
+    .map(outcome => outcome.reason as unknown)
+  if (failures.length > 0) {
+    const cause: unknown =
+      failures.find(error => !isEpipe(error)) ?? failures[0]
+    throw cause instanceof Error ? cause : new Error(String(cause))
+  }
 }
 
 async function makeIxWithJsSort(fileStream: Readable, outIxFilename: string) {
