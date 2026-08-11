@@ -9,7 +9,7 @@ import type { Readable, Writable } from 'node:stream'
 export async function sortLinesExternal(input: Readable, output: Writable) {
   const dir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'ixixx-sort-'))
   try {
-    await externalSort(input, output, dir, 10_000)
+    await externalSort(input, output, dir)
   } finally {
     await fs.promises.rm(dir, { recursive: true, force: true })
   }
