@@ -1,3 +1,29 @@
+## [3.0.13](https://github.com/GMOD/ixixx-js/compare/v3.0.12...v3.0.13) (2026-08-11)
+
+### Bug Fixes
+
+- The js fallback did not order the ix the way `sort -k1,1` does ([baea191](https://github.com/GMOD/ixixx-js/commit/baea19146bcb912fe29e23e0f337e4131f8a8dee))
+- A sort that died before reading its input reported only EPIPE ([5db41d0](https://github.com/GMOD/ixixx-js/commit/5db41d04eb667109667aed3e691eff4d99cb003f))
+
+### Chores
+
+- Render only the commit subject, and link the commit ([f1bcea9](https://github.com/GMOD/ixixx-js/commit/f1bcea933ea10f32e897d28d5da7e584f5d4c37e))
+- Create a GitHub release for each published tag ([e50ba3e](https://github.com/GMOD/ixixx-js/commit/e50ba3e9997a828a3cf8343934067e6f231cfb84))
+- Enforce type strippability in tsconfig ([a19d729](https://github.com/GMOD/ixixx-js/commit/a19d729f3c2271a8525328e23846fbc815d18094))
+
+### Performance Improvements
+
+- A term shared by many records made the whole ix quadratic ([efab8e4](https://github.com/GMOD/ixixx-js/commit/efab8e494bced420b195fb411cb202e092e93777))
+
+### Refactoring
+
+- One bin rule, not two spellings of it ([200c92a](https://github.com/GMOD/ixixx-js/commit/200c92ac8c93cfb6cf887e5b1711d52adc6b0493))
+- Drop a redundant cursor and a redundant default ([ffe086c](https://github.com/GMOD/ixixx-js/commit/ffe086c5c2be6c3375ba256d09f62eb8a9d3ae5d))
+
+### Tests
+
+- The loop test spent the whole budget proving something smaller ([5ab2789](https://github.com/GMOD/ixixx-js/commit/5ab27898442429ab8b50a44efea81831ba2c2db2))
+
 ## [3.0.12](https://github.com/GMOD/ixixx-js/compare/v3.0.11...v3.0.12) (2026-08-10)
 
 ### Chores
