@@ -26,14 +26,21 @@ function createStats(): PrefixStats {
 }
 
 function meetsHeuristics(s: PrefixStats, totalBytes: number) {
-  // the stretch from the last bin to the end of the file is what a search
-  // landing in it has to scan, so it counts as a bin even though no ixx entry
-  // marks its end. leaving it out scores a prefix that writes one bin and then
-  // never changes again as perfect, and every word sharing the first five
-  // characters (ENSG00000139618 and friends) is exactly that case: it wins with
-  // a single ixx entry at offset 0, so every search rescans the whole ix
+  if (s.binCount === 0) {
+    // an ix with no words in it, so nothing for a search to scan
+    return true
+  }
+  // a search lands in one of binCount bins: the stretch following each ixx
+  // entry, the last of which runs to the end of the file rather than to a
+  // further entry. leaving that tail out scores a prefix that writes one bin
+  // and then never changes again as perfect, and every word sharing the first
+  // five characters (ENSG00000139618 and friends) is exactly that case: it wins
+  // with a single ixx entry at offset 0, so every search rescans the whole ix
   const tail = totalBytes - s.lastBin
-  const avgBinSize = (s.binSizeTotal + tail) / (s.binCount + 1)
+  // binSizeTotal covers every bin but the tail — the first entry is measured
+  // against a zero-length predecessor and contributes nothing — so the two
+  // together are the whole file, spread over binCount bins
+  const avgBinSize = (s.binSizeTotal + tail) / s.binCount
   return (
     avgBinSize <= 3 * binSize && Math.max(s.maxBinSize, tail) <= 10 * binSize
   )
