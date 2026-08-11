@@ -1,11 +1,19 @@
 import fs from 'node:fs'
+import path from 'node:path'
 import { Readable } from 'node:stream'
 
 import tmp from 'tmp'
-import { describe, expect, test, vi } from 'vitest'
+import { afterEach, describe, expect, test, vi } from 'vitest'
 
 import { StringWritable } from './StringWritable.ts'
 import { externalSort, maxFanIn } from '../src/externalSort.ts'
+
+// a test that times out never reaches its own restore, and the next spyOn then
+// binds the leaked spy as its original and calls itself forever. one slow test
+// turning into a stack overflow in the next one is a bad way to find that out
+afterEach(() => {
+  vi.restoreAllMocks()
+})
 
 // counts how many temp runs the merge has open at once. a merge keeps every
 // run it is reading open for its whole duration, so this is what the process
@@ -31,10 +39,30 @@ function trackOpenReaders() {
   }
 }
 
+// counts the folded runs written, which is how many times reduceRuns went round
+// its loop. es_g is the name it gives them; es_ alone is an initial run
+function trackFolds() {
+  const createWriteStream = fs.createWriteStream.bind(fs)
+  let folds = 0
+  const spy = vi.spyOn(fs, 'createWriteStream').mockImplementation((f, o) => {
+    if (typeof f === 'string' && path.basename(f).startsWith('es_g')) {
+      folds++
+    }
+    return createWriteStream(f, o)
+  })
+  return {
+    folds: () => folds,
+    restore: () => {
+      spy.mockRestore()
+    },
+  }
+}
+
 // maxHeap of 1 makes one run per line, so `lines` runs without needing a big
 // enough input to reach the default 10k-line runs
 async function sortOneLinePerRun(lines: string[]) {
   const readers = trackOpenReaders()
+  const writers = trackFolds()
   const output = new StringWritable()
   const dir = tmp.dirSync({ prefix: 'fan-in' })
   try {
@@ -46,12 +74,14 @@ async function sortOneLinePerRun(lines: string[]) {
     )
   } finally {
     readers.restore()
+    writers.restore()
   }
   const remaining = fs.readdirSync(dir.name)
   dir.removeCallback()
   return {
     sorted: output.data.split('\n').filter(l => l.length > 0),
     peakReaders: readers.peak(),
+    folds: writers.folds(),
     remaining,
   }
 }
@@ -72,21 +102,31 @@ describe('merge fan-in', () => {
   })
 
   test('folds repeatedly when one pass is not enough', async () => {
-    // more runs than a single fold can reduce to maxFanIn, so it has to loop
-    const lines = Array.from({ length: maxFanIn * maxFanIn + 1 }, (_, i) =>
+    // a fold replaces maxFanIn runs with one, so it nets maxFanIn - 1 fewer.
+    // this is the smallest input that cannot get down to maxFanIn in one, which
+    // is all the loop needs to be exercised — the maxFanIn squared it used to
+    // use took 65 folds and roughly the whole 5s test budget, so the suite
+    // failed here whenever the machine was busy
+    const lines = Array.from({ length: maxFanIn * 2 + 5 }, (_, i) =>
       String(i).padStart(5, '0'),
     )
-    const { sorted, peakReaders } = await sortOneLinePerRun(lines.toReversed())
+    const { sorted, peakReaders, folds } = await sortOneLinePerRun(
+      lines.toReversed(),
+    )
 
     expect(sorted).toEqual(lines)
     expect(peakReaders).toBeLessThanOrEqual(maxFanIn)
+    expect(folds).toBe(2)
   })
 
   test('leaves a merge that fits within the fan-in untouched', async () => {
     const lines = Array.from({ length: maxFanIn }, (_, i) =>
       String(i).padStart(3, '0'),
     )
-    const { sorted, peakReaders } = await sortOneLinePerRun(lines.toReversed())
+    const { sorted, peakReaders, folds } = await sortOneLinePerRun(
+      lines.toReversed(),
+    )
+    expect(folds).toBe(0)
 
     expect(sorted).toEqual(lines)
     // exactly one open handle per run, so no intermediate fold happened
