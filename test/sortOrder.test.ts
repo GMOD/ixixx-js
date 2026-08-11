@@ -6,7 +6,7 @@ import tmp from 'tmp'
 import { describe, expect, test } from 'vitest'
 
 import { StringWritable } from './StringWritable.ts'
-import { compareCodePoints } from '../src/compareCodePoints.ts'
+import { compareIxLines } from '../src/compareIxLines.ts'
 import { externalSort } from '../src/externalSort.ts'
 
 // the words mix ascii, bmp characters above 0xE000 and astral characters, which
@@ -51,17 +51,46 @@ async function jsSort(lines: string[], maxHeap: number) {
   return out.data.split('\n').filter(l => l.length > 0)
 }
 
+// a term that is a proper prefix of another, where the longer one continues
+// with a character below the space that ends the shorter one's field. this is
+// the only shape where `sort -k1,1` and plain byte order over the whole line
+// disagree, and getting it wrong writes an ix that is not in term order
+const CONTROL = String.fromCodePoint(1)
+const prefixPairs = [
+  `ab${CONTROL}x recB,1`,
+  'ab recA,1',
+  'abz recC,1',
+  `ab${CONTROL} recD,1`,
+  'ab!x recE,1',
+]
+
 describe('sort order', () => {
-  test('compareCodePoints matches utf-8 byte order', () => {
+  test('compareIxLines matches utf-8 byte order for space-free words', () => {
     const byBytes = words.toSorted((a, b) =>
       Buffer.compare(Buffer.from(a, 'utf8'), Buffer.from(b, 'utf8')),
     )
-    expect(words.toSorted(compareCodePoints)).toEqual(byBytes)
+    expect(words.toSorted(compareIxLines)).toEqual(byBytes)
   })
 
   test('utf-16 order really differs, so this is not a no-op', () => {
-    expect(words.toSorted(compareCodePoints)).not.toEqual(words.toSorted())
+    expect(words.toSorted(compareIxLines)).not.toEqual(words.toSorted())
   })
+
+  test('the first field outranks the rest of the line', () => {
+    // plain byte order over the whole line would put ab\x01x first
+    expect(
+      prefixPairs.toSorted(compareIxLines).map(l => l.split(' ')[1]),
+    ).toEqual(['recA,1', 'recD,1', 'recB,1', 'recE,1', 'recC,1'])
+  })
+
+  test.skipIf(process.platform === 'win32')(
+    'js sort path matches LC_ALL=C sort where a term is another term prefix',
+    async () => {
+      expect(await jsSort(prefixPairs, 1000)).toEqual(
+        await systemSort(prefixPairs),
+      )
+    },
+  )
 
   test.skipIf(process.platform === 'win32')(
     'js sort path matches LC_ALL=C sort, single run',
