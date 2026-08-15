@@ -7,3 +7,5 @@ out2.ix
 out2.ixx
 esm
 .eslintcache
+.claude/settings.local.json
+.claude/worktrees/
