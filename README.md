@@ -6,7 +6,7 @@ This library implements trix text indexing file generation. Trix indexes allow
 you to search a large amount of free text data using static files and
 byte-range requests, no server side code needed
 
-It is basically a translation of
+This library is basically a translation of
 https://github.com/ucscGenomeBrowser/kent/blob/master/src/index/ixIxx/ixIxx.c
 from C into JS, plus some added code to keep memory usage low by doing an
 external disk based sort. The original C library basically loads all keywords
@@ -30,15 +30,14 @@ ixIxx(inText: string, outIx: string, outIxx: string, prefixSize?: number)
 
 ## The trix concept
 
-Takes an input file like this, containing a mapping of a keyword to several
-keywords e.g.
+`ixIxx` takes an input file like this, mapping one keyword to several keywords:
 
 ```
 MyGene0001  kinase signalling
 MyGene0002  binding zinc
 ```
 
-And then creates a new file thats kind of like the inverse of it in an ix file
+`ixIxx` creates an ix file that inverts the mapping:
 
 ```
 binding MyGene0002
@@ -47,18 +46,18 @@ signalling MyGene0001
 zinc MyGene0002
 ```
 
-And indexes it so that it has a prefix, and a byte offset to words starting
-with that prefix in an ixx file e.g. (made up numbers but conceptually
-something like this)
+`ixIxx` also builds an ixx file that indexes the ix file by prefix, pairing each
+prefix with a byte offset to where words starting with it begin (made-up
+numbers, but conceptually like this):
 
 ```
 bindin0000000000
 signal0000000114
 ```
 
-So that when you type e.g. `sig` it can lookup where approximately you want to
-start looking in the ixx file and then perform byte range requests against the
-ix file, and find that you are looking for MyGene0001
+A lookup for a prefix such as `sig` finds the nearest offset in the ixx file,
+then does byte range requests against the ix file to find the matching
+entries — for example, MyGene0001.
 
 ## See also
 
