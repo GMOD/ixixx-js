@@ -3,7 +3,7 @@ import { Transform } from 'node:stream'
 import { chunkSize } from './util.ts'
 
 export class TrixInputTransform extends Transform {
-  batch = ''
+  private batch = ''
 
   _transform(chunk: Buffer, _encoding: unknown, done: () => void) {
     // trim first: splitting untrimmed lines yields empty fields, which turn

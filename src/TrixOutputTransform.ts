@@ -7,9 +7,9 @@ function elt(buff: string[], current: string) {
 }
 
 export class TrixOutputTransform extends Transform {
-  buff: string[] = []
-  current = ''
-  batch = ''
+  private buff: string[] = []
+  private current = ''
+  private batch = ''
 
   _transform(chunk: Buffer, _encoding: unknown, done: () => void) {
     // weird: need to strip nulls from string, xref

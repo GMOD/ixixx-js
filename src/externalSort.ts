@@ -54,7 +54,7 @@ function heapify(harr: HeapNode[], i: number, heapSize: number) {
 async function initialRun(
   input: Readable,
   tempDir: string,
-  maxHeap: number,
+  runLength: number,
   files: string[],
 ) {
   const buf: string[] = []
@@ -71,7 +71,7 @@ async function initialRun(
 
   for await (const line of splitLines(input)) {
     buf.push(line)
-    if (buf.length === maxHeap) {
+    if (buf.length === runLength) {
       await flush()
     }
   }
@@ -174,11 +174,11 @@ export async function externalSort(
   input: Readable,
   output: Writable,
   tempDir: string,
-  maxHeap = 10_000,
+  runLength = 10_000,
 ) {
   const files: string[] = []
   try {
-    await initialRun(input, tempDir, maxHeap, files)
+    await initialRun(input, tempDir, runLength, files)
     await mergeSortedFiles(files, tempDir, output)
   } catch (error) {
     // mergeSortedFiles is what ends the output, so failing before it would

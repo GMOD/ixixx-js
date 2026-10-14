@@ -58,7 +58,7 @@ function trackFolds() {
   }
 }
 
-// maxHeap of 1 makes one run per line, so `lines` runs without needing a big
+// runLength of 1 makes one run per line, so `lines` runs without needing a big
 // enough input to reach the default 10k-line runs
 async function sortOneLinePerRun(lines: string[]) {
   const readers = trackOpenReaders()

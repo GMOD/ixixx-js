@@ -6,12 +6,15 @@ import { describe, expect, test } from 'vitest'
 import { StringWritable } from './StringWritable.ts'
 import { externalSort } from '../src/externalSort.ts'
 
-async function sortLines(lines: string[], maxHeap = 10_000): Promise<string[]> {
+async function sortLines(
+  lines: string[],
+  runLength = 10_000,
+): Promise<string[]> {
   const input = Readable.from(lines.map(l => l + '\n'))
   const output = new StringWritable()
   const tempDir = tmp.dirSync({ prefix: 'test-sort' })
 
-  await externalSort(input, output, tempDir.name, maxHeap)
+  await externalSort(input, output, tempDir.name, runLength)
   tempDir.removeCallback()
 
   return output.data.split('\n').filter(l => l.length > 0)
@@ -53,7 +56,7 @@ describe('externalSort', () => {
     expect(result).toEqual(['apple tart', 'banana split', 'cherry pie'])
   })
 
-  test('sorts with small maxHeap (forces multiple temp files)', async () => {
+  test('sorts with small runLength (forces multiple temp files)', async () => {
     const lines = ['dog', 'cat', 'bird', 'ant', 'zebra', 'fish', 'elephant']
     const result = await sortLines(lines, 3)
     expect(result).toEqual([
