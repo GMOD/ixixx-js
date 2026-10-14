@@ -2,9 +2,9 @@
 
 # ixixx-js
 
-ixixx-js generates trix text index files. Trix indexes let you search a large
-amount of free text data using static files and byte-range requests, with no
-server-side code.
+ixixx-js generates trix text index files. Trix indexes allow you to search a
+large amount of free text data using static files and byte-range requests, with
+no server-side code needed.
 
 ixixx-js is a translation of
 https://github.com/ucscGenomeBrowser/kent/blob/master/src/index/ixIxx/ixIxx.c
