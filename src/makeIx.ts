@@ -21,6 +21,21 @@ function isEpipe(error: unknown) {
   return (error as NodeJS.ErrnoException | null | undefined)?.code === 'EPIPE'
 }
 
+// waits for every promise to settle, so the caller never sees a rejection
+// while cleanup is still running, and reports the most informative failure. a
+// sort that dies before draining its stdin trips the input pipeline with EPIPE
+// while sortDone holds the exit status and stderr, so EPIPE comes last
+async function settleAll(promises: Promise<void>[]) {
+  const failures = (await Promise.allSettled(promises))
+    .filter(outcome => outcome.status === 'rejected')
+    .map(outcome => outcome.reason as unknown)
+  if (failures.length > 0) {
+    const cause: unknown =
+      failures.find(error => !isEpipe(error)) ?? failures[0]
+    throw cause instanceof Error ? cause : new Error(String(cause))
+  }
+}
+
 async function makeIxWithExternalSort(
   fileStream: Readable,
   outIxFilename: string,
@@ -66,26 +81,11 @@ async function makeIxWithExternalSort(
     out,
   )
 
-  // all three are waited out rather than raced, because the first failure to
-  // arrive is often the least informative one. a sort that dies before draining
-  // its stdin — a bad TMPDIR, say — trips the input pipeline with EPIPE while
-  // sortDone is the one holding its exit status and stderr. EPIPE on the input
-  // side never means anything else, so it is the reason of last resort; the
-  // rest are listed cause before symptom
-  const failures = (await Promise.allSettled([inputDone, outputDone, sortDone]))
-    .filter(outcome => outcome.status === 'rejected')
-    .map(outcome => outcome.reason as unknown)
-  if (failures.length > 0) {
-    const cause: unknown =
-      failures.find(error => !isEpipe(error)) ?? failures[0]
-    throw cause instanceof Error ? cause : new Error(String(cause))
-  }
+  await settleAll([inputDone, outputDone, sortDone])
 }
 
 async function makeIxWithJsSort(fileStream: Readable, outIxFilename: string) {
   const out = fs.createWriteStream(outIxFilename)
-
-  // Transform input using pipeline for proper error handling
   const transformedInput = new PassThrough()
   const inputDone = pipeline(
     fileStream,
@@ -93,15 +93,11 @@ async function makeIxWithJsSort(fileStream: Readable, outIxFilename: string) {
     new TrixInputTransform(),
     transformedInput,
   )
-
-  // Sort lines using external merge sort
   const sortedOutput = split2()
   const sortDone = sortLinesExternal(transformedInput, sortedOutput)
-
-  // Transform sorted output and write to file
   const writeDone = pipeline(sortedOutput, new TrixOutputTransform(), out)
 
-  await Promise.all([inputDone, sortDone, writeDone])
+  await settleAll([inputDone, sortDone, writeDone])
 }
 
 export async function makeIxStream(
