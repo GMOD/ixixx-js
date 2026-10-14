@@ -6,12 +6,10 @@ ixixx-js generates trix text index files. Trix indexes allow you to search a
 large amount of free text data using static files and byte-range requests, with
 no server-side code needed.
 
-ixixx-js is a translation of
-https://github.com/ucscGenomeBrowser/kent/blob/master/src/index/ixIxx/ixIxx.c
-from C into JS, plus an external disk-based sort that keeps memory usage low.
-The C code loads all keywords into memory and sorts the keys of a large hash.
-With larger files that approach runs into Node.js limits, so ixixx-js
-uses the external sort instead.
+ixixx-js translates UCSC's
+[ixIxx.c](https://github.com/ucscGenomeBrowser/kent/blob/master/src/index/ixIxx/ixIxx.c)
+into JS. Where the C code sorts every keyword in memory, which hits Node.js
+limits on large files, ixixx-js uses an external disk-based sort.
 
 ## CLI
 
@@ -45,18 +43,16 @@ signalling MyGene0001
 zinc MyGene0002
 ```
 
-`ixIxx` also builds an ixx file that indexes the ix file by prefix, pairing each
-prefix with a byte offset to where words starting with it begin (made-up
-numbers, but conceptually like this):
+`ixIxx` also builds an ixx file that pairs each prefix with the byte offset in
+the ix file where its words begin (offsets illustrative):
 
 ```
 bindin0000000000
 signal0000000114
 ```
 
-A lookup for a prefix such as `sig` finds the nearest offset in the ixx file,
-then does byte range requests against the ix file to find the matching
-entries — for example, MyGene0001.
+A lookup for `sig` finds the nearest offset in the ixx file, then reads the ix
+file from there to find MyGene0001.
 
 ## See also
 
@@ -65,9 +61,8 @@ the searches.
 
 ## Publishing
 
-GitHub Actions publishes each release with
-[trusted publishing](https://docs.npmjs.com/about-trusted-publishing). Start a
-release with:
+GitHub Actions publishes with
+[trusted publishing](https://docs.npmjs.com/about-trusted-publishing):
 
 ```bash
 pnpm version patch  # or minor/major
