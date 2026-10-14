@@ -67,4 +67,17 @@ describe('makeIxx', () => {
     const result = await createIxx(ixContent)
     expect(result.length).toBeGreaterThan(0)
   })
+
+  test('rejects when the output path cannot be opened', async () => {
+    const lines = Array.from(
+      { length: 20_000 },
+      (_, i) => `word${i} data${i},1`,
+    )
+    const ixFile = tmp.fileSync()
+    fs.writeFileSync(ixFile.name, lines.join('\n') + '\n')
+    await expect(
+      makeIxx(ixFile.name, '/nonexistent-dir/out.ixx', 5),
+    ).rejects.toThrow(/ENOENT/)
+    ixFile.removeCallback()
+  })
 })

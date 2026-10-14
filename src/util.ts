@@ -1,4 +1,4 @@
-export const binSize = 64 * 1024 //64kb
+export const binSize = 64 * 1024
 
 // lines are accumulated into chunks of about this size before being handed to
 // the next stream, one push per line is dominated by stream overhead
