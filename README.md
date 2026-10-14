@@ -2,17 +2,16 @@
 
 # ixixx-js
 
-This library implements trix text indexing file generation. Trix indexes allow
-you to search a large amount of free text data using static files and
-byte-range requests, no server side code needed
+ixixx-js generates trix text index files. Trix indexes let you search a large
+amount of free text data using static files and byte-range requests, with no
+server-side code.
 
-This library is basically a translation of
+ixixx-js is a translation of
 https://github.com/ucscGenomeBrowser/kent/blob/master/src/index/ixIxx/ixIxx.c
-from C into JS, plus some added code to keep memory usage low by doing an
-external disk based sort. The original C library basically loads all keywords
-into memory, and sorts the keys of a large hash, but this library ran into some
-node.js limits on doing this with larger files and so it uses the external sort
-to keep memory usage lower
+from C into JS, plus an external disk-based sort that keeps memory usage low.
+The C code loads all keywords into memory and sorts the keys of a large hash.
+With larger files that approach runs into Node.js limits, so ixixx-js
+uses the external sort instead.
 
 ## CLI
 
@@ -61,11 +60,14 @@ entries — for example, MyGene0001.
 
 ## See also
 
-https://github.com/GMOD/trix-js for the client side library to do the searches
+[trix-js](https://github.com/GMOD/trix-js) is the client-side library that runs
+the searches.
 
 ## Publishing
 
-[Trusted publishing](https://docs.npmjs.com/about-trusted-publishing) via GitHub Actions.
+GitHub Actions publishes each release with
+[trusted publishing](https://docs.npmjs.com/about-trusted-publishing). Start a
+release with:
 
 ```bash
 pnpm version patch  # or minor/major
