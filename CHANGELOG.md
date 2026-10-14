@@ -1,3 +1,23 @@
+## [3.1.0](https://github.com/GMOD/ixixx-js/compare/v3.0.13...v3.1.0) (2026-10-14)
+
+### Chores
+
+- Keep agent worktrees out of the toolchain's way ([f8d0381](https://github.com/GMOD/ixixx-js/commit/f8d038167f892379e9ae0ffa9a91e75d72441df5))
+
+### Documentation
+
+- Correct the release command in CONTRIBUTING, and its voice ([c268e03](https://github.com/GMOD/ixixx-js/commit/c268e03c3cf816ff057207c2bdfe6c0063312d14))
+- Fix anti-AI writing tropes in README ([3bd77ff](https://github.com/GMOD/ixixx-js/commit/3bd77ff6bf2171568d73bf556409a22436990bb2))
+
+### Other Changes
+
+- Rewrite AI-writing tropes in README and CONTRIBUTING ([2114c27](https://github.com/GMOD/ixixx-js/commit/2114c2793f75f07e961335e017caeafc361c1409))
+- Restore wording the tropes rewrite changed without a trope ([ac1fd5b](https://github.com/GMOD/ixixx-js/commit/ac1fd5b582ec5e288268ed2ae38271f0053c24b6))
+- Trim README wordiness ([1519877](https://github.com/GMOD/ixixx-js/commit/15198776d83b63916f2cc3174dcb8d13a1b405d6))
+- Reject instead of crashing when makeIxx cannot open its output ([0a6e562](https://github.com/GMOD/ixixx-js/commit/0a6e5623f2559aa58f72caed0f7d4d766d362cdf))
+- Settle every promise in the JS-sort fallback before rejecting ([9a8c32e](https://github.com/GMOD/ixixx-js/commit/9a8c32efa2e85cc7a922f9c1b4913e6d2bf19e91))
+- Rename externalSort's maxHeap to runLength, make transform state private ([060df5c](https://github.com/GMOD/ixixx-js/commit/060df5c2f514c3cda5ae9e5d5d0340e08aaa2555))
+
 ## [3.0.13](https://github.com/GMOD/ixixx-js/compare/v3.0.12...v3.0.13) (2026-08-11)
 
 ### Bug Fixes
