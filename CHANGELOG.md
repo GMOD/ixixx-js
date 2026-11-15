@@ -1,3 +1,36 @@
+## [3.1.1](https://github.com/GMOD/ixixx-js/compare/v3.1.0...v3.1.1) (2026-11-15)
+
+### Bug Fixes
+
+- Name the installed binary, ixixxjs, in the usage message ([2105045](https://github.com/GMOD/ixixx-js/commit/2105045b697a8308abd7017e6dadd8487bbdfe45))
+- Say TMPDIR filled up when a sort runs out of temp space ([ebdde77](https://github.com/GMOD/ixixx-js/commit/ebdde77cf9b579abe84612405a0b429ac9faa886))
+- Reject rather than crash when a temp run fails to open ([41ce691](https://github.com/GMOD/ixixx-js/commit/41ce6913f166fca9ff3e11f3b240f48d98d82aee))
+- Name the directory each sort actually used in the TMPDIR hint ([74bb35e](https://github.com/GMOD/ixixx-js/commit/74bb35e3076dac2883baab444f0a02ee4bea1379))
+
+### Documentation
+
+- Trusted publishing adds provenance without a --provenance flag ([fc1ee13](https://github.com/GMOD/ixixx-js/commit/fc1ee13fd41d84c57d2055aa07fe09b8d5ecdd18))
+- Say the output is for trix-js, not UCSC's trix ([4465432](https://github.com/GMOD/ixixx-js/commit/446543284c0c13d5185d287915f083a358d6e799))
+
+### Other Changes
+
+- Bump deps, drop unused dev deps and stale ignores ([250938a](https://github.com/GMOD/ixixx-js/commit/250938a4599641242aca0f93187caf3a40f060fe))
+
+### Performance Improvements
+
+- Batch writes to sort across input chunks ([3dc5e17](https://github.com/GMOD/ixixx-js/commit/3dc5e17cb7b3f69af80a186d2350207d47240a5f))
+
+### Refactoring
+
+- Narrow errors in settleAll without casts ([1b0499c](https://github.com/GMOD/ixixx-js/commit/1b0499ccd7f28084965d7c8e3f40d17ee8776ce8))
+- Drop split2 for a built-in line splitter ([a07582a](https://github.com/GMOD/ixixx-js/commit/a07582a66fcb2164917c36a78025112e8f5e031c))
+- Run the JS sort as a pipeline stage ([960421c](https://github.com/GMOD/ixixx-js/commit/960421ce8fcbd2b595f2d730b6ecc5ba322c20d1))
+- Look for sort when called, not at import ([36964d8](https://github.com/GMOD/ixixx-js/commit/36964d862d630129839d13d1c68cba5cad1268fd))
+
+### Tests
+
+- Finish renaming maxHeap to runLength ([298e540](https://github.com/GMOD/ixixx-js/commit/298e540b3e6fc0f0d89b6f871f08ac9cf9a0dec6))
+
 ## [3.1.0](https://github.com/GMOD/ixixx-js/compare/v3.0.13...v3.1.0) (2026-10-14)
 
 ### Chores
