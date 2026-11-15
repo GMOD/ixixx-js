@@ -11,6 +11,10 @@ ixixx-js translates UCSC's
 into JS. Where the C code sorts every keyword in memory, which hits Node.js
 limits on large files, ixixx-js uses an external disk-based sort.
 
+The output is meant for [trix-js](https://github.com/GMOD/trix-js). The ixx
+prefix length is chosen to fit the data, while UCSC's own `trix` reader assumes
+5 characters, so it cannot search these indexes.
+
 ## CLI
 
 ```
