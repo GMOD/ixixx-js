@@ -50,4 +50,14 @@ describe('trixInput', () => {
     const result = await transformInput([])
     expect(result).toBe('')
   })
+
+  test('batches its output across one-record input chunks', async () => {
+    const records = Array.from({ length: 1000 }, (_, i) => `id${i} word${i}\n`)
+    const chunks: string[] = []
+    for await (const chunk of trixInput(Readable.from(records))) {
+      chunks.push(chunk)
+    }
+    expect(chunks).toHaveLength(1)
+    expect(chunks[0]!.split('\n').filter(Boolean)).toHaveLength(1000)
+  })
 })
