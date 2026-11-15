@@ -132,4 +132,31 @@ describe('externalSort streaming edge cases', () => {
     expect(readers.filter(r => !r.destroyed)).toEqual([])
     dir.removeCallback()
   })
+
+  test('rejects rather than crashing when a later run cannot be opened', async () => {
+    const dir = tmp.dirSync({ prefix: 'open-fail' })
+    const createReadStream = fs.createReadStream.bind(fs)
+    const spy = vi
+      .spyOn(fs, 'createReadStream')
+      .mockImplementation((file, options) =>
+        createReadStream(
+          String(file).endsWith('es_1.tmp') ? `${String(file)}.gone` : file,
+          options,
+        ),
+      )
+    const input = Readable.from(['f\ne\nd\nc\nb\na\n'])
+    try {
+      await expect(
+        pipeline(
+          input,
+          source => externalSort(source, dir.name, 2),
+          new StringWritable(),
+        ),
+      ).rejects.toThrow(/ENOENT/)
+    } finally {
+      spy.mockRestore()
+    }
+    expect(fs.readdirSync(dir.name)).toHaveLength(0)
+    dir.removeCallback()
+  })
 })

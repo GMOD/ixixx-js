@@ -4,7 +4,7 @@ import { pipeline } from 'node:stream/promises'
 
 import { compareIxLines } from './compareIxLines.ts'
 import { lineBatches } from './lineBatches.ts'
-import { chunkSize } from './util.ts'
+import { chunkSize, errorCode } from './util.ts'
 
 // a sorted run being merged: `line` is its current head, and `lines[next]`
 // onwards what is left of the batch it came from
@@ -66,11 +66,9 @@ async function initialRun(
   await flush()
 }
 
+// lineBatches never yields an empty batch, so a batch always has a next line
 async function nextBatch(run: Run) {
-  let r = await run.batches.next()
-  while (!r.done && r.value.length === 0) {
-    r = await run.batches.next()
-  }
+  const r = await run.batches.next()
   if (!r.done) {
     run.lines = r.value
     run.next = 0
@@ -82,18 +80,19 @@ async function* mergeIterator(filesPath: string[]) {
   const streams = filesPath.map(file => fs.createReadStream(file))
 
   try {
-    const harr: Run[] = []
-    for (const stream of streams) {
-      const run: Run = {
-        line: '',
-        lines: [],
-        next: 0,
-        batches: lineBatches(stream),
-      }
-      if (await nextBatch(run)) {
-        run.line = run.lines[run.next++]!
-        harr.push(run)
-      }
+    const runs = streams.map((stream): Run => ({
+      line: '',
+      lines: [],
+      next: 0,
+      batches: lineBatches(stream),
+    }))
+    // started together, so every stream is listened to before any of them
+    // can fail to open. a stream nobody reads yet has no 'error' listener,
+    // and its failure would crash the process instead of rejecting
+    const started = await Promise.all(runs.map(nextBatch))
+    const harr = runs.filter((_, i) => started[i])
+    for (const run of harr) {
+      run.line = run.lines[run.next++]!
     }
     let heapSize = harr.length
     for (let i = (heapSize - 1) >> 1; i >= 0; i--) {
@@ -128,9 +127,13 @@ async function* mergeIterator(filesPath: string[]) {
   }
 }
 
+// a run whose file was never created, because opening it failed, has nothing
+// to remove, and reporting that would bury the error that actually happened
 async function unlinkTemp(file: string) {
   await fs.promises.unlink(file).catch((error: unknown) => {
-    console.error(`failed to unlink temp file ${file}:`, error)
+    if (errorCode(error) !== 'ENOENT') {
+      console.error(`failed to unlink temp file ${file}:`, error)
+    }
   })
 }
 

@@ -26,3 +26,11 @@ export function commonPrefixLength(a: string, b: string) {
 export function samePrefix(a: string, b: string, prefixSize: number) {
   return a === b || commonPrefixLength(a, b) >= prefixSize
 }
+
+export function errorCode(error: unknown) {
+  return error instanceof Error &&
+    'code' in error &&
+    typeof error.code === 'string'
+    ? error.code
+    : undefined
+}
