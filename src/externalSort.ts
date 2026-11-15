@@ -1,13 +1,10 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import { Readable } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
 
 import { compareIxLines } from './compareIxLines.ts'
 import { lineBatches } from './lineBatches.ts'
 import { chunkSize } from './util.ts'
-
-import type { Writable } from 'node:stream'
 
 // a sorted run being merged: `line` is its current head, and `lines[next]`
 // onwards what is left of the batch it came from
@@ -41,7 +38,7 @@ function heapify(harr: Run[], i: number, heapSize: number) {
 }
 
 async function initialRun(
-  input: Readable,
+  input: AsyncIterable<Buffer | string>,
   tempDir: string,
   runLength: number,
   files: string[],
@@ -152,47 +149,22 @@ async function reduceRuns(files: string[], tempDir: string) {
     const group = files.slice(0, maxFanIn)
     const fpath = path.resolve(tempDir, `es_g${generation++}.tmp`)
     files.push(fpath)
-    await pipeline(
-      Readable.from(mergeIterator(group)),
-      fs.createWriteStream(fpath),
-    )
+    await pipeline(mergeIterator(group), fs.createWriteStream(fpath))
     files.splice(0, maxFanIn)
     await Promise.all(group.map(unlinkTemp))
   }
 }
 
-async function mergeSortedFiles(
-  files: string[],
-  tempDir: string,
-  output: Writable,
-) {
-  await reduceRuns(files, tempDir)
-  if (files.length === 0) {
-    await new Promise<void>(resolve => {
-      output.end(resolve)
-    })
-  } else if (files.length === 1) {
-    await pipeline(fs.createReadStream(files[0]!), output)
-  } else {
-    await pipeline(Readable.from(mergeIterator(files)), output)
-  }
-}
-
-export async function externalSort(
-  input: Readable,
-  output: Writable,
+export async function* externalSort(
+  input: AsyncIterable<Buffer | string>,
   tempDir: string,
   runLength = 10_000,
 ) {
   const files: string[] = []
   try {
     await initialRun(input, tempDir, runLength, files)
-    await mergeSortedFiles(files, tempDir, output)
-  } catch (error) {
-    // mergeSortedFiles is what ends the output, so failing before it would
-    // leave whatever reads the output waiting on a stream that never finishes
-    output.destroy(error instanceof Error ? error : new Error(String(error)))
-    throw error
+    await reduceRuns(files, tempDir)
+    yield* mergeIterator(files)
   } finally {
     await Promise.all(files.map(unlinkTemp))
   }

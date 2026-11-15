@@ -1,6 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { Readable } from 'node:stream'
+import { pipeline } from 'node:stream/promises'
 
 import tmp from 'tmp'
 import { afterEach, describe, expect, test, vi } from 'vitest'
@@ -66,11 +67,10 @@ async function sortOneLinePerRun(lines: string[]) {
   const output = new StringWritable()
   const dir = tmp.dirSync({ prefix: 'fan-in' })
   try {
-    await externalSort(
+    await pipeline(
       Readable.from(lines.map(l => `${l}\n`)),
+      source => externalSort(source, dir.name, 1),
       output,
-      dir.name,
-      1,
     )
   } finally {
     readers.restore()

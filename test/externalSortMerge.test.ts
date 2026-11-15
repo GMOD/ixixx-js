@@ -1,4 +1,5 @@
 import { Readable } from 'node:stream'
+import { pipeline } from 'node:stream/promises'
 
 import tmp from 'tmp'
 import { describe, expect, test } from 'vitest'
@@ -31,7 +32,11 @@ describe('externalSort merge behavior', () => {
     const output = new StringWritable()
     const tempDir = tmp.dirSync({ prefix: 'test-merge' })
 
-    await externalSort(input, output, tempDir.name, 5)
+    await pipeline(
+      input,
+      source => externalSort(source, tempDir.name, 5),
+      output,
+    )
     tempDir.removeCallback()
 
     const result = output.data.split('\n').filter(l => l.length > 0)
@@ -48,7 +53,11 @@ describe('externalSort merge behavior', () => {
     const output = new StringWritable()
     const tempDir = tmp.dirSync({ prefix: 'test-stability' })
 
-    await externalSort(input, output, tempDir.name, 3)
+    await pipeline(
+      input,
+      source => externalSort(source, tempDir.name, 3),
+      output,
+    )
     tempDir.removeCallback()
 
     const result = output.data.split('\n').filter(l => l.length > 0)
@@ -63,7 +72,11 @@ describe('externalSort merge behavior', () => {
     const output = new StringWritable()
     const tempDir = tmp.dirSync({ prefix: 'test-single' })
 
-    await externalSort(input, output, tempDir.name, 100)
+    await pipeline(
+      input,
+      source => externalSort(source, tempDir.name, 100),
+      output,
+    )
     tempDir.removeCallback()
 
     const result = output.data.split('\n').filter(l => l.length > 0)
@@ -78,7 +91,11 @@ describe('externalSort merge behavior', () => {
     const output = new StringWritable()
     const tempDir = tmp.dirSync({ prefix: 'test-exact' })
 
-    await externalSort(input, output, tempDir.name, 5)
+    await pipeline(
+      input,
+      source => externalSort(source, tempDir.name, 5),
+      output,
+    )
     tempDir.removeCallback()
 
     const result = output.data.split('\n').filter(l => l.length > 0)
@@ -93,7 +110,11 @@ describe('externalSort merge behavior', () => {
     const output = new StringWritable()
     const tempDir = tmp.dirSync({ prefix: 'test-cleanup' })
 
-    await externalSort(input, output, tempDir.name, 2)
+    await pipeline(
+      input,
+      source => externalSort(source, tempDir.name, 2),
+      output,
+    )
 
     // Check temp dir is empty (files should be cleaned up)
     const { readdirSync } = await import('node:fs')
@@ -111,7 +132,11 @@ describe('externalSort merge behavior', () => {
     const output = new StringWritable()
     const tempDir = tmp.dirSync({ prefix: 'test-long' })
 
-    await externalSort(input, output, tempDir.name, 2)
+    await pipeline(
+      input,
+      source => externalSort(source, tempDir.name, 2),
+      output,
+    )
     tempDir.removeCallback()
 
     const result = output.data.split('\n').filter(l => l.length > 0)

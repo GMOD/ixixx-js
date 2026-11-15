@@ -41,11 +41,10 @@ async function systemSort(lines: string[]) {
 async function jsSort(lines: string[], runLength: number) {
   const out = new StringWritable()
   const dir = tmp.dirSync({ prefix: 'order-' })
-  await externalSort(
+  await pipeline(
     Readable.from(lines.map(l => `${l}\n`)),
+    source => externalSort(source, dir.name, runLength),
     out,
-    dir.name,
-    runLength,
   )
   dir.removeCallback()
   return out.data.split('\n').filter(l => l.length > 0)

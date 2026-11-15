@@ -1,5 +1,6 @@
 import fs from 'node:fs'
 import { Readable, Writable } from 'node:stream'
+import { pipeline } from 'node:stream/promises'
 
 import tmp from 'tmp'
 import { describe, expect, test, vi } from 'vitest'
@@ -10,7 +11,11 @@ import { StringWritable } from './StringWritable.ts'
 async function run(input: Readable, runLength = 10_000) {
   const output = new StringWritable()
   const dir = tmp.dirSync({ prefix: 'streaming-test' })
-  await externalSort(input, output, dir.name, runLength)
+  await pipeline(
+    input,
+    source => externalSort(source, dir.name, runLength),
+    output,
+  )
   dir.removeCallback()
   return output.data.split('\n').filter(l => l.length > 0)
 }
@@ -58,9 +63,9 @@ describe('externalSort streaming edge cases', () => {
         cb(new Error('boom'))
       },
     })
-    await expect(externalSort(input, failing, dir.name, 2)).rejects.toThrow(
-      'boom',
-    )
+    await expect(
+      pipeline(input, source => externalSort(source, dir.name, 2), failing),
+    ).rejects.toThrow('boom')
     expect(fs.readdirSync(dir.name)).toHaveLength(0)
     dir.removeCallback()
   })
@@ -80,13 +85,13 @@ describe('externalSort streaming edge cases', () => {
     })
     const output = new StringWritable()
     // whatever reads the output has to learn the sort died, otherwise it waits
-    // forever for an end that mergeSortedFiles never gets to write
+    // forever for an end that never comes
     const outputError = new Promise<Error>(resolve => {
       output.once('error', resolve)
     })
-    await expect(externalSort(input, output, dir.name, 2)).rejects.toThrow(
-      'input boom',
-    )
+    await expect(
+      pipeline(input, source => externalSort(source, dir.name, 2), output),
+    ).rejects.toThrow('input boom')
     expect((await outputError).message).toBe('input boom')
     expect(output.destroyed).toBe(true)
     expect(fs.readdirSync(dir.name)).toHaveLength(0)
@@ -118,9 +123,9 @@ describe('externalSort streaming edge cases', () => {
         cb(new Error('boom'))
       },
     })
-    await expect(externalSort(input, failing, dir.name, 250)).rejects.toThrow(
-      'boom',
-    )
+    await expect(
+      pipeline(input, source => externalSort(source, dir.name, 250), failing),
+    ).rejects.toThrow('boom')
     spy.mockRestore()
 
     expect(readers.length).toBeGreaterThan(1)

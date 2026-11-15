@@ -1,47 +1,48 @@
 import { Readable } from 'node:stream'
+import { pipeline } from 'node:stream/promises'
 
 import { describe, expect, test } from 'vitest'
 
-import { sortLinesExternal } from '../src/sortLines.ts'
+import { sortLines } from '../src/sortLines.ts'
 import { StringWritable } from './StringWritable.ts'
 
-async function sortLines(lines: string[]): Promise<string[]> {
+async function sorted(lines: string[]) {
   const input = Readable.from(lines.map(l => l + '\n'))
   const output = new StringWritable()
-  await sortLinesExternal(input, output)
+  await pipeline(input, sortLines, output)
   return output.data.split('\n').filter(l => l.length > 0)
 }
 
-describe('sortLinesExternal', () => {
+describe('sortLines', () => {
   test('sorts lines', async () => {
-    const result = await sortLines(['cherry', 'apple', 'banana'])
+    const result = await sorted(['cherry', 'apple', 'banana'])
     expect(result).toEqual(['apple', 'banana', 'cherry'])
   })
 
   test('handles empty input', async () => {
-    const result = await sortLines([])
+    const result = await sorted([])
     expect(result).toEqual([])
   })
 
   test('handles single line', async () => {
-    const result = await sortLines(['only'])
+    const result = await sorted(['only'])
     expect(result).toEqual(['only'])
   })
 
   test('handles duplicates', async () => {
-    const result = await sortLines(['b', 'a', 'b', 'a'])
+    const result = await sorted(['b', 'a', 'b', 'a'])
     expect(result).toEqual(['a', 'a', 'b', 'b'])
   })
 
   test('handles lines with spaces', async () => {
-    const result = await sortLines(['cherry pie', 'apple tart'])
+    const result = await sorted(['cherry pie', 'apple tart'])
     expect(result).toEqual(['apple tart', 'cherry pie'])
   })
 
   test('cleans up temp directory', async () => {
     const input = Readable.from(['b\n', 'a\n'])
     const output = new StringWritable()
-    await sortLinesExternal(input, output)
+    await pipeline(input, sortLines, output)
     expect(output.data).toBe('a\nb\n')
   })
 })

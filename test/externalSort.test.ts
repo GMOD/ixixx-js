@@ -1,4 +1,5 @@
 import { Readable } from 'node:stream'
+import { pipeline } from 'node:stream/promises'
 
 import tmp from 'tmp'
 import { describe, expect, test } from 'vitest'
@@ -14,7 +15,11 @@ async function sortLines(
   const output = new StringWritable()
   const tempDir = tmp.dirSync({ prefix: 'test-sort' })
 
-  await externalSort(input, output, tempDir.name, runLength)
+  await pipeline(
+    input,
+    source => externalSort(source, tempDir.name, runLength),
+    output,
+  )
   tempDir.removeCallback()
 
   return output.data.split('\n').filter(l => l.length > 0)

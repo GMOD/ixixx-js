@@ -1,10 +1,9 @@
 import { spawn } from 'node:child_process'
 import fs from 'node:fs'
-import { PassThrough } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
 
 import { commandExistsSync } from './commandExists.ts'
-import { sortLinesExternal } from './sortLines.ts'
+import { sortLines } from './sortLines.ts'
 import { trixInput } from './trixInput.ts'
 import { trixOutput } from './trixOutput.ts'
 
@@ -73,14 +72,13 @@ async function makeIxWithExternalSort(
 }
 
 async function makeIxWithJsSort(fileStream: Readable, outIxFilename: string) {
-  const out = fs.createWriteStream(outIxFilename)
-  const transformedInput = new PassThrough()
-  const inputDone = pipeline(fileStream, trixInput, transformedInput)
-  const sortedOutput = new PassThrough()
-  const sortDone = sortLinesExternal(transformedInput, sortedOutput)
-  const writeDone = pipeline(sortedOutput, trixOutput, out)
-
-  await settleAll([inputDone, sortDone, writeDone])
+  await pipeline(
+    fileStream,
+    trixInput,
+    sortLines,
+    trixOutput,
+    fs.createWriteStream(outIxFilename),
+  )
 }
 
 export async function makeIxStream(
