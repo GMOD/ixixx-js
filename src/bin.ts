@@ -7,7 +7,7 @@ async function main() {
   if (file) {
     await ixIxx(file, out1, out2)
   } else {
-    console.error('usage: ixixx file.txt [out.ix] [out.ixx]')
+    console.error('usage: ixixxjs file.txt [out.ix] [out.ixx]')
     process.exitCode = 1
   }
 }
