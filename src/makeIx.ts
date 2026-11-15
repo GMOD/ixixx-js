@@ -18,7 +18,7 @@ const useExternalSort =
 const MAX_STDERR = 4096
 
 function isEpipe(error: unknown) {
-  return (error as NodeJS.ErrnoException | null | undefined)?.code === 'EPIPE'
+  return error instanceof Error && 'code' in error && error.code === 'EPIPE'
 }
 
 // waits for every promise to settle, so the caller never sees a rejection
@@ -26,9 +26,10 @@ function isEpipe(error: unknown) {
 // sort that dies before draining its stdin trips the input pipeline with EPIPE
 // while sortDone holds the exit status and stderr, so EPIPE comes last
 async function settleAll(promises: Promise<void>[]) {
-  const failures = (await Promise.allSettled(promises))
-    .filter(outcome => outcome.status === 'rejected')
-    .map(outcome => outcome.reason as unknown)
+  const failures = (await Promise.allSettled(promises)).flatMap(
+    (outcome): unknown[] =>
+      outcome.status === 'rejected' ? [outcome.reason] : [],
+  )
   if (failures.length > 0) {
     const cause: unknown =
       failures.find(error => !isEpipe(error)) ?? failures[0]
