@@ -8,7 +8,7 @@ import { StringWritable } from './StringWritable.ts'
 
 describe('externalSort merge behavior', () => {
   test('correctly merges multiple sorted temp files', async () => {
-    // Use maxHeap=5 to force creation of multiple temp files
+    // Use runLength=5 to force creation of multiple temp files
     const lines = [
       'zebra',
       'apple',
@@ -71,7 +71,7 @@ describe('externalSort merge behavior', () => {
     expect(result).toEqual(['a', 'b', 'c'])
   })
 
-  test('handles exactly maxHeap items', async () => {
+  test('handles exactly runLength items', async () => {
     const lines = ['e', 'd', 'c', 'b', 'a']
 
     const input = Readable.from(lines.map(l => l + '\n'))

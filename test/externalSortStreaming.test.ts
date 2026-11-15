@@ -7,10 +7,10 @@ import { describe, expect, test, vi } from 'vitest'
 import { externalSort } from '../src/externalSort.ts'
 import { StringWritable } from './StringWritable.ts'
 
-async function run(input: Readable, maxHeap = 10_000) {
+async function run(input: Readable, runLength = 10_000) {
   const output = new StringWritable()
   const dir = tmp.dirSync({ prefix: 'streaming-test' })
-  await externalSort(input, output, dir.name, maxHeap)
+  await externalSort(input, output, dir.name, runLength)
   dir.removeCallback()
   return output.data.split('\n').filter(l => l.length > 0)
 }

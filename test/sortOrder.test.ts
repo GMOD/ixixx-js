@@ -38,14 +38,14 @@ async function systemSort(lines: string[]) {
   return out.data.split('\n').filter(l => l.length > 0)
 }
 
-async function jsSort(lines: string[], maxHeap: number) {
+async function jsSort(lines: string[], runLength: number) {
   const out = new StringWritable()
   const dir = tmp.dirSync({ prefix: 'order-' })
   await externalSort(
     Readable.from(lines.map(l => `${l}\n`)),
     out,
     dir.name,
-    maxHeap,
+    runLength,
   )
   dir.removeCallback()
   return out.data.split('\n').filter(l => l.length > 0)
