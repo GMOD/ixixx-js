@@ -22,6 +22,16 @@ npm install -g ixixx
 ixixxjs file.txt [out.ix] [out.ixx]
 ```
 
+## Temporary files
+
+Sorting writes temporary files to `TMPDIR` (`/tmp` when unset), and they can
+take more space than the finished `.ix`. If `/tmp` is small, as it is when it is
+a RAM-backed tmpfs, point `TMPDIR` at a larger disk:
+
+```
+TMPDIR=/path/to/big/disk ixixxjs file.txt
+```
+
 ## Internal API
 
 ```

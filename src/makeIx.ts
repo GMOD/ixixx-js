@@ -4,6 +4,7 @@ import { pipeline } from 'node:stream/promises'
 
 import { commandExistsSync } from './commandExists.ts'
 import { sortLines } from './sortLines.ts'
+import { mentionsOutOfSpace, tempSpaceHint } from './tempSpace.ts'
 import { trixInput } from './trixInput.ts'
 import { trixOutput } from './trixOutput.ts'
 
@@ -57,7 +58,9 @@ async function makeIxWithExternalSort(
         resolve()
       } else {
         const why = signal ?? `exit code ${code}`
-        reject(new Error(`sort failed (${why}): ${stderr.trim()}`))
+        const detail = stderr.trim()
+        const hint = mentionsOutOfSpace(detail) ? `${tempSpaceHint()}\n` : ''
+        reject(new Error(`${hint}sort failed (${why}): ${detail}`))
       }
     })
   })
