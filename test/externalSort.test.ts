@@ -3,8 +3,8 @@ import { Readable } from 'node:stream'
 import tmp from 'tmp'
 import { describe, expect, test } from 'vitest'
 
-import { StringWritable } from './StringWritable.ts'
 import { externalSort } from '../src/externalSort.ts'
+import { StringWritable } from './StringWritable.ts'
 
 async function sortLines(
   lines: string[],

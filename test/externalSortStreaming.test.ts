@@ -4,8 +4,8 @@ import { Readable, Writable } from 'node:stream'
 import tmp from 'tmp'
 import { describe, expect, test, vi } from 'vitest'
 
-import { StringWritable } from './StringWritable.ts'
 import { externalSort } from '../src/externalSort.ts'
+import { StringWritable } from './StringWritable.ts'
 
 async function run(input: Readable, maxHeap = 10_000) {
   const output = new StringWritable()

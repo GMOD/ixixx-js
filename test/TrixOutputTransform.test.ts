@@ -4,8 +4,8 @@ import { pipeline } from 'node:stream/promises'
 import split2 from 'split2'
 import { describe, expect, test } from 'vitest'
 
-import { StringWritable } from './StringWritable.ts'
 import { TrixOutputTransform } from '../src/TrixOutputTransform.ts'
+import { StringWritable } from './StringWritable.ts'
 
 async function transformOutput(lines: string[]): Promise<string> {
   const input = Readable.from(lines.map(l => l + '\n'))

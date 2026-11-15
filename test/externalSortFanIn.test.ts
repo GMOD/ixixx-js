@@ -5,8 +5,8 @@ import { Readable } from 'node:stream'
 import tmp from 'tmp'
 import { afterEach, describe, expect, test, vi } from 'vitest'
 
-import { StringWritable } from './StringWritable.ts'
 import { externalSort, maxFanIn } from '../src/externalSort.ts'
+import { StringWritable } from './StringWritable.ts'
 
 // a test that times out never reaches its own restore, and the next spyOn then
 // binds the leaked spy as its original and calls itself forever. one slow test

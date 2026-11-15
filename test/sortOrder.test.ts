@@ -5,9 +5,9 @@ import { pipeline } from 'node:stream/promises'
 import tmp from 'tmp'
 import { describe, expect, test } from 'vitest'
 
-import { StringWritable } from './StringWritable.ts'
 import { compareIxLines } from '../src/compareIxLines.ts'
 import { externalSort } from '../src/externalSort.ts'
+import { StringWritable } from './StringWritable.ts'
 
 // the words mix ascii, bmp characters above 0xE000 and astral characters, which
 // is where utf-16 order and utf-8 byte order disagree

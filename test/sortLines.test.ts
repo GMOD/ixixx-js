@@ -2,8 +2,8 @@ import { Readable } from 'node:stream'
 
 import { describe, expect, test } from 'vitest'
 
-import { StringWritable } from './StringWritable.ts'
 import { sortLinesExternal } from '../src/sortLines.ts'
+import { StringWritable } from './StringWritable.ts'
 
 async function sortLines(lines: string[]): Promise<string[]> {
   const input = Readable.from(lines.map(l => l + '\n'))
