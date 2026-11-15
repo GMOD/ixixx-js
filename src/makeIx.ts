@@ -3,12 +3,10 @@ import fs from 'node:fs'
 import { PassThrough } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
 
-import split2 from 'split2'
-
-import { TrixInputTransform } from './TrixInputTransform.ts'
-import { TrixOutputTransform } from './TrixOutputTransform.ts'
 import { commandExistsSync } from './commandExists.ts'
 import { sortLinesExternal } from './sortLines.ts'
+import { trixInput } from './trixInput.ts'
+import { trixOutput } from './trixOutput.ts'
 
 import type { Readable } from 'node:stream'
 
@@ -68,19 +66,8 @@ async function makeIxWithExternalSort(
     })
   })
 
-  const inputDone = pipeline(
-    fileStream,
-    split2(),
-    new TrixInputTransform(),
-    sort.stdin,
-  )
-
-  const outputDone = pipeline(
-    sort.stdout,
-    split2(),
-    new TrixOutputTransform(),
-    out,
-  )
+  const inputDone = pipeline(fileStream, trixInput, sort.stdin)
+  const outputDone = pipeline(sort.stdout, trixOutput, out)
 
   await settleAll([inputDone, outputDone, sortDone])
 }
@@ -88,15 +75,10 @@ async function makeIxWithExternalSort(
 async function makeIxWithJsSort(fileStream: Readable, outIxFilename: string) {
   const out = fs.createWriteStream(outIxFilename)
   const transformedInput = new PassThrough()
-  const inputDone = pipeline(
-    fileStream,
-    split2(),
-    new TrixInputTransform(),
-    transformedInput,
-  )
-  const sortedOutput = split2()
+  const inputDone = pipeline(fileStream, trixInput, transformedInput)
+  const sortedOutput = new PassThrough()
   const sortDone = sortLinesExternal(transformedInput, sortedOutput)
-  const writeDone = pipeline(sortedOutput, new TrixOutputTransform(), out)
+  const writeDone = pipeline(sortedOutput, trixOutput, out)
 
   await settleAll([inputDone, sortDone, writeDone])
 }

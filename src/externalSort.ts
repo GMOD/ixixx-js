@@ -3,42 +3,31 @@ import path from 'node:path'
 import { Readable } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
 
-import split2 from 'split2'
-
 import { compareIxLines } from './compareIxLines.ts'
+import { lineBatches } from './lineBatches.ts'
 import { chunkSize } from './util.ts'
 
 import type { Writable } from 'node:stream'
 
-interface HeapNode {
-  item: string
-  iter: AsyncIterator<string>
+// a sorted run being merged: `line` is its current head, and `lines[next]`
+// onwards what is left of the batch it came from
+interface Run {
+  line: string
+  lines: string[]
+  next: number
+  batches: AsyncIterator<string[]>
 }
 
-// pipe() propagates neither errors nor teardown: a failing input would leave
-// the splitter open and the consumer waiting forever, and a consumer that stops
-// early would leave the input's file descriptor open. pipeline() destroys in
-// both directions, and the consumer sees any input error because pipeline
-// destroys the splitter with it
-function splitLines(input: Readable): AsyncIterable<string> {
-  const splitter = split2()
-  pipeline(input, splitter).catch(() => {
-    // nothing to report here: pipeline destroys the splitter with the error, so
-    // the consumer iterating it is the one that sees it
-  })
-  return splitter
-}
-
-function heapify(harr: HeapNode[], i: number, heapSize: number) {
+function heapify(harr: Run[], i: number, heapSize: number) {
   let cur = i
   for (;;) {
     const l = (cur << 1) + 1
     const r = l + 1
     let first = cur
-    if (l < heapSize && compareIxLines(harr[l]!.item, harr[first]!.item) < 0) {
+    if (l < heapSize && compareIxLines(harr[l]!.line, harr[first]!.line) < 0) {
       first = l
     }
-    if (r < heapSize && compareIxLines(harr[r]!.item, harr[first]!.item) < 0) {
+    if (r < heapSize && compareIxLines(harr[r]!.line, harr[first]!.line) < 0) {
       first = r
     }
     if (first === cur) {
@@ -69,26 +58,44 @@ async function initialRun(
     }
   }
 
-  for await (const line of splitLines(input)) {
-    buf.push(line)
-    if (buf.length === runLength) {
-      await flush()
+  for await (const lines of lineBatches(input)) {
+    for (const line of lines) {
+      buf.push(line)
+      if (buf.length === runLength) {
+        await flush()
+      }
     }
   }
   await flush()
 }
 
+async function nextBatch(run: Run) {
+  let r = await run.batches.next()
+  while (!r.done && r.value.length === 0) {
+    r = await run.batches.next()
+  }
+  if (!r.done) {
+    run.lines = r.value
+    run.next = 0
+  }
+  return !r.done
+}
+
 async function* mergeIterator(filesPath: string[]) {
-  const iters = filesPath.map(file =>
-    splitLines(fs.createReadStream(file))[Symbol.asyncIterator](),
-  )
+  const streams = filesPath.map(file => fs.createReadStream(file))
 
   try {
-    const harr: HeapNode[] = []
-    for (const iter of iters) {
-      const r = await iter.next()
-      if (!r.done) {
-        harr.push({ item: r.value, iter })
+    const harr: Run[] = []
+    for (const stream of streams) {
+      const run: Run = {
+        line: '',
+        lines: [],
+        next: 0,
+        batches: lineBatches(stream),
+      }
+      if (await nextBatch(run)) {
+        run.line = run.lines[run.next++]!
+        harr.push(run)
       }
     }
     let heapSize = harr.length
@@ -100,17 +107,16 @@ async function* mergeIterator(filesPath: string[]) {
     let batch = ''
     while (heapSize > 0) {
       const top = harr[0]!
-      batch += `${top.item}\n`
+      batch += `${top.line}\n`
       if (batch.length >= chunkSize) {
         yield batch
         batch = ''
       }
-      const r = await top.iter.next()
-      if (r.done) {
+      if (top.next < top.lines.length || (await nextBatch(top))) {
+        top.line = top.lines[top.next++]!
+      } else {
         heapSize--
         harr[0] = harr[heapSize]!
-      } else {
-        top.item = r.value
       }
       heapify(harr, 0, heapSize)
     }
@@ -119,7 +125,9 @@ async function* mergeIterator(filesPath: string[]) {
     }
   } finally {
     // closes the temp file handles even when the consumer stops early
-    await Promise.all(iters.map(async iter => iter.return?.()))
+    for (const stream of streams) {
+      stream.destroy()
+    }
   }
 }
 

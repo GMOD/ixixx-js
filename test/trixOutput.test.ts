@@ -1,22 +1,21 @@
 import { Readable } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
 
-import split2 from 'split2'
 import { describe, expect, test } from 'vitest'
 
-import { TrixOutputTransform } from '../src/TrixOutputTransform.ts'
+import { trixOutput } from '../src/trixOutput.ts'
 import { StringWritable } from './StringWritable.ts'
 
 async function transformOutput(lines: string[]): Promise<string> {
   const input = Readable.from(lines.map(l => l + '\n'))
   const output = new StringWritable()
 
-  await pipeline(input, split2(), new TrixOutputTransform(), output)
+  await pipeline(input, trixOutput, output)
 
   return output.data
 }
 
-describe('TrixOutputTransform', () => {
+describe('trixOutput', () => {
   test('groups entries by word (first part)', async () => {
     const result = await transformOutput(['apple id1', 'apple id2'])
     expect(result).toBe('apple id1,1 id2,2\n')
@@ -69,7 +68,7 @@ describe('TrixOutputTransform', () => {
     const input = Readable.from(['apple\0 id1\n'])
     const output = new StringWritable()
 
-    await pipeline(input, split2(), new TrixOutputTransform(), output)
+    await pipeline(input, trixOutput, output)
 
     expect(output.data).toBe('apple id1,1\n')
   })

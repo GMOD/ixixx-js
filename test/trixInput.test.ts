@@ -1,22 +1,21 @@
 import { Readable } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
 
-import split2 from 'split2'
 import { describe, expect, test } from 'vitest'
 
-import { TrixInputTransform } from '../src/TrixInputTransform.ts'
+import { trixInput } from '../src/trixInput.ts'
 import { StringWritable } from './StringWritable.ts'
 
 async function transformInput(lines: string[]): Promise<string> {
   const input = Readable.from(lines.map(l => l + '\n'))
   const output = new StringWritable()
 
-  await pipeline(input, split2(), new TrixInputTransform(), output)
+  await pipeline(input, trixInput, output)
 
   return output.data
 }
 
-describe('TrixInputTransform', () => {
+describe('trixInput', () => {
   test('transforms single word line', async () => {
     const result = await transformInput(['id123 hello'])
     expect(result).toBe('hello id123\n')
