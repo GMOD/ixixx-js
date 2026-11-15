@@ -3,7 +3,9 @@ import os from 'node:os'
 import path from 'node:path'
 import { Readable } from 'node:stream'
 
-import { describe, expect, test, vi } from 'vitest'
+import { describe, expect, test } from 'vitest'
+
+import { makeIxStream } from '../src/makeIx.ts'
 
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'jssort-'))
 
@@ -15,14 +17,11 @@ const records = Array.from(
     `doc${i} gene${String(i).padStart(6, '0')} shared${i % 13} 日本語${i % 7}\n`,
 )
 
-// makeIx decides between the `sort` subprocess and the pure-JS sort once, at
-// import time, so which path a call takes is fixed by the PATH at import
+// makeIx looks for `sort` on the PATH of each call
 async function makeIxWith(pathEnv: string | undefined, out: string) {
-  vi.resetModules()
   const original = process.env.PATH
   process.env.PATH = pathEnv
   try {
-    const { makeIxStream } = await import('../src/makeIx.ts')
     await makeIxStream(Readable.from(records), out)
   } finally {
     process.env.PATH = original
@@ -38,7 +37,7 @@ describe('pure-JS sort fallback', () => {
         process.env.PATH,
         path.join(dir, 'external.ix'),
       )
-      // no `sort` reachable, so makeIx falls back to sortLinesExternal
+      // no `sort` reachable, so makeIx falls back to sortLines
       const js = await makeIxWith('', path.join(dir, 'js.ix'))
 
       expect(js).toBe(external)

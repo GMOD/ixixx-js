@@ -3,7 +3,9 @@ import os from 'node:os'
 import path from 'node:path'
 import { Readable } from 'node:stream'
 
-import { expect, test, vi } from 'vitest'
+import { expect, test } from 'vitest'
+
+import { makeIxStream } from '../src/makeIx.ts'
 
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sortfail-'))
 
@@ -32,9 +34,6 @@ async function makeIxWith(bin: keyof typeof bins) {
   const original = process.env.PATH
   process.env.PATH = `${path.join(dir, bin)}${path.delimiter}${original}`
   try {
-    // makeIx picks its sort at import time, so each fake needs a fresh module
-    vi.resetModules()
-    const { makeIxStream } = await import('../src/makeIx.ts')
     await makeIxStream(Readable.from(lines), path.join(dir, `${bin}.ix`))
   } finally {
     process.env.PATH = original

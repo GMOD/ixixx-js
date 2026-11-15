@@ -9,9 +9,6 @@ import { trixOutput } from './trixOutput.ts'
 
 import type { Readable } from 'node:stream'
 
-const useExternalSort =
-  process.platform !== 'win32' && commandExistsSync('sort')
-
 const MAX_STDERR = 4096
 
 function isEpipe(error: unknown) {
@@ -85,7 +82,7 @@ export async function makeIxStream(
   fileStream: Readable,
   outIxFilename: string,
 ) {
-  await (useExternalSort
+  await (process.platform !== 'win32' && commandExistsSync('sort')
     ? makeIxWithExternalSort(fileStream, outIxFilename)
     : makeIxWithJsSort(fileStream, outIxFilename))
 }
