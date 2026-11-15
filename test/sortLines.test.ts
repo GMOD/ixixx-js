@@ -1,4 +1,6 @@
 import fs from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
 import { Readable } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
 
@@ -41,10 +43,32 @@ describe('sortLines', () => {
   })
 
   test('cleans up temp directory', async () => {
-    const input = Readable.from(['b\n', 'a\n'])
-    const output = new StringWritable()
-    await pipeline(input, sortLines, output)
-    expect(output.data).toBe('a\nb\n')
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sortlines-root-'))
+    vi.stubEnv('TMPDIR', root)
+    try {
+      const output = new StringWritable()
+      await pipeline(Readable.from(['b\n', 'a\n']), sortLines, output)
+      expect(output.data).toBe('a\nb\n')
+    } finally {
+      vi.unstubAllEnvs()
+    }
+    expect(fs.readdirSync(root)).toEqual([])
+    fs.rmdirSync(root)
+  })
+
+  test('says to move TMPDIR when its temp directory cannot be created for space', async () => {
+    const enospc = Object.assign(
+      new Error('ENOSPC: no space left on device, mkdtemp'),
+      { code: 'ENOSPC' },
+    )
+    const spy = vi.spyOn(fs.promises, 'mkdtemp').mockRejectedValue(enospc)
+    try {
+      await expect(
+        pipeline(Readable.from(['a\n']), sortLines, new StringWritable()),
+      ).rejects.toThrow(/^ran out of space for temporary sort files/)
+    } finally {
+      spy.mockRestore()
+    }
   })
 
   test('says to move TMPDIR when the temp files run out of space', async () => {

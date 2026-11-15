@@ -6,14 +6,17 @@ import { externalSort } from './externalSort.ts'
 import { isOutOfSpace, tempSpaceHint } from './tempSpace.ts'
 
 export async function* sortLines(input: AsyncIterable<Buffer | string>) {
-  const dir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'ixixx-sort-'))
+  const tempRoot = os.tmpdir()
   try {
-    yield* externalSort(input, dir)
+    const dir = await fs.promises.mkdtemp(path.join(tempRoot, 'ixixx-sort-'))
+    try {
+      yield* externalSort(input, dir)
+    } finally {
+      await fs.promises.rm(dir, { recursive: true, force: true })
+    }
   } catch (error) {
     throw isOutOfSpace(error)
-      ? new Error(tempSpaceHint(), { cause: error })
+      ? new Error(tempSpaceHint(tempRoot), { cause: error })
       : error
-  } finally {
-    await fs.promises.rm(dir, { recursive: true, force: true })
   }
 }

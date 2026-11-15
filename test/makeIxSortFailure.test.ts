@@ -63,8 +63,9 @@ test.skipIf(process.platform === 'win32')(
   async () => {
     // the input pipeline fails first here, with a write EPIPE that says nothing
     // about the cause
+    // nothing in it is about space, so no TMPDIR hint goes in front
     await expect(makeIxWith('immediate')).rejects.toThrow(
-      /sort failed.*read-only file system/i,
+      /^sort failed.*read-only file system/i,
     )
   },
 )

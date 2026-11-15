@@ -7,14 +7,11 @@ import { sortLines } from './sortLines.ts'
 import { mentionsOutOfSpace, tempSpaceHint } from './tempSpace.ts'
 import { trixInput } from './trixInput.ts'
 import { trixOutput } from './trixOutput.ts'
+import { errorCode } from './util.ts'
 
 import type { Readable } from 'node:stream'
 
 const MAX_STDERR = 4096
-
-function isEpipe(error: unknown) {
-  return error instanceof Error && 'code' in error && error.code === 'EPIPE'
-}
 
 // waits for every promise to settle, so the caller never sees a rejection
 // while cleanup is still running, and reports the most informative failure. a
@@ -27,7 +24,7 @@ async function settleAll(promises: Promise<void>[]) {
   )
   if (failures.length > 0) {
     const cause: unknown =
-      failures.find(error => !isEpipe(error)) ?? failures[0]
+      failures.find(error => errorCode(error) !== 'EPIPE') ?? failures[0]
     throw cause instanceof Error ? cause : new Error(String(cause))
   }
 }
@@ -59,7 +56,10 @@ async function makeIxWithExternalSort(
       } else {
         const why = signal ?? `exit code ${code}`
         const detail = stderr.trim()
-        const hint = mentionsOutOfSpace(detail) ? `${tempSpaceHint()}\n` : ''
+        // sort reads TMPDIR alone, where os.tmpdir() also tries TMP and TEMP
+        const hint = mentionsOutOfSpace(detail)
+          ? `${tempSpaceHint(process.env.TMPDIR ?? '/tmp')}\n`
+          : ''
         reject(new Error(`${hint}sort failed (${why}): ${detail}`))
       }
     })
